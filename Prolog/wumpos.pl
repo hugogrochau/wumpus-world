@@ -28,6 +28,7 @@ init :-   assert(obstaculo(1,1,abismo)),
 	  assert(direcao(norte)),
 	  assert(estado(vivo)).
 
+/*FUNCOES DE REMOVER SEMPRE RETORNAM FALSE!!!*/
 removeObstaculo   :- obstaculo(X,Y,OBS),retract(obstaculo(X,Y,OBS)),removeObstaculo.
 removeRecompensa  :- recompensa(X,Y,RE),retract(obstaculo(X,Y,RE)),removeRecompensa.
 removePontuacao   :- pontuacao(P),retract(pontuacao(P)),removePontuacao.
