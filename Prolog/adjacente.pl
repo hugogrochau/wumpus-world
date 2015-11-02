@@ -27,6 +27,15 @@ init :-   assert(obstaculo(1,1,abismo)),
 	  assert(posicao(1,1)),
 	  assert(direcao(norte)).
 
+removeObstaculo  :- obstaculo(X,Y,OBS),retract(obstaculo(X,Y,OBS)),removeObstaculo.
+removeRecompensa :- recompensa(X,Y,RE),retract(obstaculo(X,Y,RE)),removeRecompensa.
+removePontuacao  :- pontuacao(P),retract(pontuacao(P)),removePontuacao.
+removeDirecao    :- direcao(D),retract(direcao(D)),removeDirecao.
+removePosicao    :- posicao(X,Y),retract(posicao(X,Y)),removePosicao.
+removeTudo       :- removeObstaculo;removeRecompensa;removePontuacao;removeDirecao;
+		    removePosicao.
+reinicia         :- removeTudo;init.
+
 /* Sensores */
 parede(X,Y) :- X > 6;X < 1;Y < 1;Y > 6.
 brisa(X,Y) :- not(parede(X,Y)),adjacente(X,Y,Z,W),obstaculo(Z,W,abismo).
@@ -46,3 +55,9 @@ andar	   :- direcao(D),posicao(X,Y),((D==norte,NY is Y-1,NX is X);
 				       (D==leste,NY is Y,NX is X+1);
 				       (D==oeste,NY is Y,NX is X-1)),
 				       retract(posicao(X,Y)),assert(posicao(NX,NY)).
+
+virar      :- direcao(D), ((D==norte, ND = leste);
+			   (D==leste, ND = sul);
+			   (D==sul  , ND = oeste);
+			   (D==oeste, ND = norte)),
+			   retract(direcao(D)), assert(direcao(ND)).
