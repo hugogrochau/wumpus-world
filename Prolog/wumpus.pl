@@ -84,20 +84,21 @@ gerarRecompensas(N,REC) :-  (N > 0,tamanhoMundo(TAM),random_between(1,TAM,RX),ra
 % (QTDOURO,QTDMORCEGO,QTDABISMO,QTDWUMPOS)
 gerarMundoRandomico  :- qtdOuro(QOURO),qtdMorcego(QMORCEGO),qtdAbismo(QABISMO),qtdWumpos(QWUMPOS),
 			gerarObstaculos(QABISMO,abismo),gerarObstaculos(QMORCEGO,morcego),gerarObstaculos(QWUMPOS,wumpos),
-			gerarRecompensas(QOURO,ouro),iniciarValoresDefault.
+			gerarRecompensas(QOURO,ouro),iniciarValoresDefault,atualizarConhecimento.
 
 /* FUNCOES DE REINICIALIZACAO */
-removeObstaculo   :- obstaculo(X,Y,OBS),retract(obstaculo(X,Y,OBS)),removeObstaculo.
-removeRecompensa  :- recompensa(X,Y,RE),retract(recompensa(X,Y,RE)),removeRecompensa.
-removePontuacao   :- pontuacao(P),retract(pontuacao(P)),removePontuacao.
-removeDirecao     :- direcao(D),retract(direcao(D)),removeDirecao.
-removePosicao     :- posicao(X,Y),retract(posicao(X,Y)),removePosicao.
-removeEstado      :- estado(E),retract(estado(E)),removeEstado.
-removeEstadoJogo  :- eJogo(EST),retract(eJogo(EST)),removeEstadoJogo.
-removeConhecimento:- conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)),removeConhecimento.
-removeConhecimento(X,Y) :- (conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)));true.
-removeTudo        :- removeObstaculo;removeRecompensa;removePontuacao;removeDirecao;
-		     removePosicao;removeEstado;removeEstadoJogo,removeConhecimento.
+removeObstaculo             :- obstaculo(X,Y,OBS),retract(obstaculo(X,Y,OBS)),removeObstaculo.
+removeRecompensa            :- recompensa(X,Y,RE),retract(recompensa(X,Y,RE)),removeRecompensa.
+removePontuacao             :- pontuacao(P),retract(pontuacao(P)),removePontuacao.
+removeDirecao               :- direcao(D),retract(direcao(D)),removeDirecao.
+removePosicao               :- posicao(X,Y),retract(posicao(X,Y)),removePosicao.
+removeEstado                :- estado(E),retract(estado(E)),removeEstado.
+removeEstadoJogo            :- eJogo(EST),retract(eJogo(EST)),removeEstadoJogo.
+removeConhecimento          :- conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)),removeConhecimento.
+removeConhecimento(X,Y,CON) :- (conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)));true.
+removeConhecimento(X,Y)     :- (conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)),removeConhecimento(X,Y));true.
+removeTudo                  :- removeObstaculo;removeRecompensa;removePontuacao;removeDirecao;
+		               removePosicao;removeEstado;removeEstadoJogo;removeConhecimento.
 % Reinicia o mundo usando valores constantes
 reiniciarC	  :- removeTudo;init.
 % Reinicia o mundo usando valores randomicos
@@ -130,15 +131,29 @@ simulaAndar(X,Y)  :- posicao(AX,AY),direcao(DIR),((DIR==norte,X is AX,Y is AY - 
 						  (DIR==oeste,X is AX - 1, Y is AY)).
 
 % Adiciona conhecimento a base de dados
-adicionarConhecimento(X,Y,CON) :- not(conhecimento(X,Y,_)),assert(conhecimento(X,Y,CON)).
-% Sobrescreve um conhecimento de uma posicao X,Y
-setarConhecimento(X,Y,CON)     :- removeConhecimento(X,Y),adicionarConhecimento(X,Y,CON).
+adicionarConhecimento(X,Y,CON) :- not(conhecimento(X,Y,CON)),assert(conhecimento(X,Y,CON)).
+
+% Adicionar conhecimentos de uma certa posicao X,Y
+adicionaCMorcego(X,Y) :- (obstaculo(X,Y,morcego),assert(conhecimento(X,Y,morcego)));true.
+adicionaCWumpos(X,Y)  :- (obstaculo(X,Y,wumpos),assert(conhecimento(X,Y,wumpos)));true.
+adicionaCAbismo(X,Y)  :- (obstaculo(X,Y,abismo),assert(conhecimento(X,Y,abismo)));true.
+adicionaCBrisa(X,Y)   :- (brisa(X,Y),assert(conhecimento(X,Y,brisa)));true.
+adicionaCFedor(X,Y)   :- (fedor(X,Y),assert(conhecimento(X,Y,fedor)));true.
+adicionaCBrilho(X,Y)  :- (brilho(X,Y),assert(conhecimento(X,Y,brilho)));true.
+adicionaConhecimentos(X,Y) :- adicionaCMorcego(X,Y),adicionaCWumpos(X,Y),
+			      adicionaCAbismo(X,Y),adicionaCBrisa(X,Y),
+			      adicionaCFedor(X,Y),adicionaCBrilho(X,Y).
+
+atualizarConhecimento      :- posicao(X,Y),removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
+atualizarConhecimento(X,Y) :- removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
+
 % TENTA MATAR O WUMPOS EM UMA POSICAO X,Y
 killw(X,Y) :- obstaculo(X,Y,wumpos),retract(obstaculo(X,Y,wumpos)).
 
 % Executa o efeito morcego. Caso tenha um morcego onde o jogador esta,
 % ele vai para uma posicao randomica valida
-efeitoMorcego :- (posicao(X,Y),obstaculo(X,Y,morcego),randomizarPosicao,pontuacaoCondicao,efeitoMorcego);true.
+efeitoMorcego :- (posicao(X,Y),obstaculo(X,Y,morcego),randomizarPosicao,atualizarConhecimento,pontuacaoCondicao,
+		  efeitoMorcego);true.
 
 /********************************
  * ACOES QUE O AGENTE PODE TOMAR
@@ -146,14 +161,15 @@ efeitoMorcego :- (posicao(X,Y),obstaculo(X,Y,morcego),randomizarPosicao,pontuaca
 
 % ATIRA UMA FLECHA NA DIRECAO EM QUE O AGENTE ESTA OLHANDO (APENAS 1
 % QUADRADO A FRENTE)
-atirar     :- decPontuacao(1),decPontuacao(10),simulaAndar(X,Y),killw(X,Y).
+atirar     :- decPontuacao(1),decPontuacao(10),simulaAndar(X,Y),killw(X,Y),atualizarConhecimento.
 
 % TENTA PEGAR O OURO DA POSICAO ATUAL DO AGENTE
-getg       :- decPontuacao(1),posicao(X,Y),recompensa(X,Y,ouro),retract(recompensa(X,Y,ouro)),addPontuacao(1000).
+getg       :- decPontuacao(1),posicao(X,Y),recompensa(X,Y,ouro),retract(recompensa(X,Y,ouro)),addPontuacao(1000),
+	      atualizarConhecimento.
 
 % ANDA NA DIRECAO EM QUE O AGENTE ESTA OLHANDO, SE FOR PAREDE O AGENTE
 % NAO ANDA.
-andar	   :- decPontuacao(1),simulaAndar(X,Y),(parede(X,Y);(setarPosicao(X,Y),pontuacaoCondicao)),
+andar	   :- decPontuacao(1),simulaAndar(X,Y),not(parede(X,Y)),setarPosicao(X,Y),pontuacaoCondicao,atualizarConhecimento,
 	      efeitoMorcego.
 
 % ANDA N VEZES
