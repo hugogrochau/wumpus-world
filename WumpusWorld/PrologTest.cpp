@@ -22,7 +22,7 @@ static const char * sensorsStrings[] = {
 };
 
 static const char * knowledgeStrings[] = {
-	"morcegos", "wumpus", "abismo", "brisa", "fedor", "brilho", "grito"
+	"morcego", "wumpus", "abismo", "brisa", "fedor", "brilho", "grito"
 };
 
 static void initializeWorld();
@@ -47,6 +47,7 @@ static void getAgentPosition();
 static int getScore();
 static void getSensors(bool *);
 static void getSensorsString(bool *, char *);
+static void getKnowledgeFromPosition(int x, int y, bool *);
 
 static bool isAlive();
 static bool isSensorInAgentPosition(Sensor);
@@ -59,11 +60,11 @@ int posy = 1;
 Direction direction = NORTH;
 
 int main(void) {
-	char* argv[] = {"swipl.dll", "-s", PROGRAM_PATH};  //Argumentos para a inicialização do prolog, incluindo o caminho para o 
-													   //arquivo do programa prolog que sera carregado (Ex: "D:\\teste.pl")
+	char* argv[] = {"swipl.dll", "-s", PROGRAM_PATH};
 
 	PlEngine e(3, argv);
 	restartWorld();
+
 	turn();
 	turn();
 	for (int i = 0; i < 3; i++) {
@@ -71,6 +72,7 @@ int main(void) {
 		walk();
 		printf("\n");
 	}
+
 	_getch();
 	return 1;
 }
@@ -159,7 +161,7 @@ static void printWorld() {
 	printColor(isAlive() ? "alive" : "dead", isAlive() ? FOREGROUND_GREEN : FOREGROUND_RED);
 	printf("\n");
 
-	bool sensors[6] = { false, false, false, false, false };
+	bool sensors[7] = { false, false, false, false, false, false, false };
 	char str[255] = "";
 	getSensors(sensors);
 	getSensorsString(sensors, str);
@@ -178,7 +180,7 @@ static void getObstacle() {
 		if (strcmp("abismo", obs) == 0) {
 			color = abismo;
 		}
-		else if (strcmp("wumpos", obs) == 0) {
+		else if (strcmp("wumpus", obs) == 0) {
 			color = wumpus;
 		}
 		else if (strcmp("morcego", obs) == 0) {
@@ -243,11 +245,27 @@ static void getSensors(bool *sensors) {
 	if (isSensorInAgentPosition(BAT_SCREAM)) {
 		sensors[BAT_SCREAM] = true;
 	}
-	if (isSensorInAgentPosition(WUMPUS_SCREAM)) {
+/*	if (isSensorInAgentPosition(WUMPUS_SCREAM)) {
 		sensors[WUMPUS_SCREAM] = true;
-	}
+	}*/
 	if (isSensorInAgentPosition(GLITTER)) {
 		sensors[GLITTER] = true;
+	}
+}
+
+static void getKnowledgeFromPosition(int x, int y, bool *ks) {
+	PlTermv av(3);
+	av[0] = x;
+	av[1] = y;
+	PlQuery q("conhecimento", av);
+
+	while (q.next_solution()) {
+		char *str = av[2];
+		for (int i = 0; i < 7; i++) {
+			if (strcmp(knowledgeStrings[i], str) == 0) {
+				ks[i] = true;
+			}
+		}
 	}
 }
 
@@ -284,7 +302,7 @@ static bool isSensorInPosition(int x, int y, Sensor sensor) {
 	av[0] = x;
 	av[1] = y;
 	PlQuery q(query, av);
- 	return q.next_solution();
+ 	return (int) q.next_solution();
 }
 
 static bool isAlive() {
@@ -303,7 +321,7 @@ static bool isKnowledgeInPosition(int x, int y, KnowledgeType k) {
 	av[1] = y;
 	av[2] = knowledgeStrings[k];
 	PlQuery q("conhecimento", av);
-	return q.next_solution();
+	return (int) q.next_solution();
 }
 
 
