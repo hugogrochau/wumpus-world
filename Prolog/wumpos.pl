@@ -50,22 +50,16 @@ brilho(X,Y):- not(parede(X,Y)),recompensa(X,Y,ouro).
  *******************************/
 
 /* FUNCOES DE INICIALIZACAO */
-
-% Inicia o estado inicial do jogo(execucao)
-iniciaJogo :- assert(eJogo(execucao)).
+iniciarValoresDefault :- posicaoInicial(X,Y),assert(pontuacao(0)),assert(posicao(X,Y)),assert(direcao(norte)),
+			 assert(estado(vivo)),assert(eJogo(execucao)).
 
 % Inicia o mundo com valores constantes
-init :-   iniciaJogo,
-	  posicaoInicial(X,Y),
-	  assert(obstaculo(1,1,abismo)),
+init :-   assert(obstaculo(1,1,abismo)),
 	  assert(obstaculo(1,2,wumpos)),
 	  assert(obstaculo(1,3,abismo)),
 	  assert(obstaculo(1,4,morcego)),
 	  assert(recompensa(1,5,ouro)),
-	  assert(pontuacao(0)),
-	  assert(posicao(X,Y)),
-	  assert(direcao(norte)),
-	  assert(estado(vivo)).
+	  iniciarValoresDefault.
 
 % Gera obstaculos randomicamente // Ex : gerarObstaculos(3,abismo) ->
 % Gera 3 abismos
@@ -85,9 +79,9 @@ gerarRecompensas(N,REC) :-  (N > 0,tamanhoMundo(TAM),random_between(1,TAM,RX),ra
 
 % Gera um mundo randomico usando valores pre definidos
 % (QTDOURO,QTDMORCEGO,QTDABISMO,QTDWUMPOS)
-gerarMundoRandomico  :- iniciaJogo,qtdOuro(QOURO),qtdMorcego(QMORCEGO),qtdAbismo(QABISMO),qtdWumpos(QWUMPOS),
+gerarMundoRandomico  :- qtdOuro(QOURO),qtdMorcego(QMORCEGO),qtdAbismo(QABISMO),qtdWumpos(QWUMPOS),
 			gerarObstaculos(QABISMO,abismo),gerarObstaculos(QMORCEGO,morcego),gerarObstaculos(QWUMPOS,wumpos),
-			gerarRecompensas(QOURO,ouro).
+			gerarRecompensas(QOURO,ouro),iniciarValoresDefault.
 
 /* FUNCOES DE REINICIALIZACAO */
 removeObstaculo   :- obstaculo(X,Y,OBS),retract(obstaculo(X,Y,OBS)),removeObstaculo.
