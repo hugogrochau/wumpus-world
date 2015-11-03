@@ -3,6 +3,7 @@
  * GUSTAVO MARTINS E HUGO GROCHAU
  * DATA : 02/11/2015
  * INTELIGENCIA ARTIFICIAL
+ * VERSION 1.0a
  * ******************************/
 
 /**************************************
@@ -127,6 +128,10 @@ simulaAndar(X,Y)  :- posicao(AX,AY),direcao(DIR),((DIR==norte,X is AX,Y is AY - 
 % TENTA MATAR O WUMPOS EM UMA POSICAO X,Y
 killw(X,Y) :- obstaculo(X,Y,wumpos),retract(obstaculo(X,Y,wumpos)).
 
+% Executa o efeito morcego. Caso tenha um morcego onde o jogador esta,
+% ele vai para uma posicao randomica valida
+efeitoMorcego :- (posicao(X,Y),obstaculo(X,Y,morcego),randomizarPosicao,pontuacaoCondicao,efeitoMorcego);true.
+
 /********************************
  * ACOES QUE O AGENTE PODE TOMAR
  ********************************/
@@ -140,7 +145,11 @@ getg       :- decPontuacao(1),posicao(X,Y),recompensa(X,Y,ouro),retract(recompen
 
 % ANDA NA DIRECAO EM QUE O AGENTE ESTA OLHANDO, SE FOR PAREDE O AGENTE
 % NAO ANDA.
-andar	   :- decPontuacao(1),simulaAndar(X,Y),(parede(X,Y);(setarPosicao(X,Y),pontuacaoCondicao)).
+andar	   :- decPontuacao(1),simulaAndar(X,Y),(parede(X,Y);(setarPosicao(X,Y),pontuacaoCondicao)),
+	      efeitoMorcego.
+
+% ANDA N VEZES
+andar(N)   :- (N > 0,andar,NN is N-1,virar(NN));true.
 
 % VIRA A DIRECAO EM QUE O AGENTE ESTA OLHANDO NO SENTIDO HORARIO DO
 % RELOGIO
