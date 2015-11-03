@@ -1,9 +1,9 @@
 /********************************
  * MUNDO WUMPUS
  * GUSTAVO MARTINS E HUGO GROCHAU
- * DATA : 02/11/2015
+ * DATA : 03/11/2015
  * INTELIGENCIA ARTIFICIAL
- * VERSION 1.1a
+ * VERSION 1.2a
  * ******************************/
 
 /**************************************
@@ -46,7 +46,7 @@ parede(X,Y) :- tamanhoMundo(TAM),(X > TAM;X < 1;Y < 1;Y > TAM).
 brisa(X,Y)  :- not(parede(X,Y)),adjacente(X,Y,Z,W),obstaculo(Z,W,abismo).
 fedor(X,Y)  :- not(parede(X,Y)),adjacente(X,Y,Z,W),obstaculo(Z,W,wumpus).
 grito(X,Y)  :- not(parede(X,Y)),adjacente(X,Y,Z,W),obstaculo(Z,W,morcego).
-brilho(X,Y ):- not(parede(X,Y)),recompensa(X,Y,ouro).
+brilho(X,Y) :- not(parede(X,Y)),recompensa(X,Y,ouro).
 
 /*******************************
  * FUNCOES INTERNAS DO PROGRAMA
