@@ -11,13 +11,18 @@
 
 using namespace std;
 
-enum Obstacle {abismo = FOREGROUND_GREEN, morcego = FOREGROUND_BLUE, wumpos = FOREGROUND_RED};
+enum Obstacle {abismo = FOREGROUND_GREEN, morcego = FOREGROUND_BLUE, wumpus = FOREGROUND_RED};
 enum Reward {ouro = FOREGROUND_BLUE|FOREGROUND_RED };
 enum Direction {NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3};
-enum Sensor {NONE, WALL, BREEZE, STINK, SCREAM, GLITTER};
+enum Sensor {NONE, WALL, BREEZE, STINK, BAT_SCREAM, WUMPUS_SCREAM, GLITTER};
+enum KnowledgeType {K_BAT, K_WUMPUS, K_ABYSS, K_BREEZE, K_STINK, K_SHINE, K_BAT_SCREAM};
 
 static const char * sensorsStrings[] = {
-	"None", "Wall", "Breeze", "Stink", "Scream", "Glitter"
+	"None", "Wall", "Breeze", "Stink", "Bat Scream", "Wumpus Scream", "Glitter"
+};
+
+static const char * knowledgeStrings[] = {
+	"morcegos", "wumpus", "abismo", "brisa", "fedor", "brilho", "grito"
 };
 
 static void initializeWorld();
@@ -33,6 +38,8 @@ static void walk();
 static void turn();
 static void turn(int);
 static void shoot();
+static void addKnowledgeToPosition(int x, int y, KnowledgeType);
+static void removeKnowledgeFromPosition(int x, int y, KnowledgeType);
 
 static void getObstacle();
 static void getReward();
@@ -41,10 +48,10 @@ static int getScore();
 static void getSensors(bool *);
 static void getSensorsString(bool *, char *);
 
-
 static bool isAlive();
 static bool isSensorInAgentPosition(Sensor);
-static bool isSensorInPosition(int, int, Sensor);
+static bool isSensorInPosition(int x, int y, Sensor);
+static bool isKnowledgeInPosition(int x, int y, KnowledgeType);
 
 char world[WORLD_LEN][WORLD_LEN];
 int posx = 1;
@@ -134,7 +141,7 @@ static void printWorld() {
 			switch (world[y][x]) {
 			case abismo  : printColor("A ", world[y][x]);
 				break;
-			case wumpos  : printColor("W ", world[y][x]);
+			case wumpus  : printColor("W ", world[y][x]);
 				break;
 			case morcego : printColor("M ", world[y][x]);
 				break;
@@ -172,7 +179,7 @@ static void getObstacle() {
 			color = abismo;
 		}
 		else if (strcmp("wumpos", obs) == 0) {
-			color = wumpos;
+			color = wumpus;
 		}
 		else if (strcmp("morcego", obs) == 0) {
 			color = morcego;
@@ -215,7 +222,7 @@ static int getScore() {
 }
 
 void getSensorsString(bool * sensors, char * str) {
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < 7; i++) {
 		if (sensors[i]) {
 			strcat(str, sensorsStrings[i]);
 			strcat(str, ", ");
@@ -233,8 +240,11 @@ static void getSensors(bool *sensors) {
 	if (isSensorInAgentPosition(STINK)) {
 		sensors[STINK] = true;
 	}
-	if (isSensorInAgentPosition(SCREAM)) {
-		sensors[SCREAM] = true;
+	if (isSensorInAgentPosition(BAT_SCREAM)) {
+		sensors[BAT_SCREAM] = true;
+	}
+	if (isSensorInAgentPosition(WUMPUS_SCREAM)) {
+		sensors[WUMPUS_SCREAM] = true;
 	}
 	if (isSensorInAgentPosition(GLITTER)) {
 		sensors[GLITTER] = true;
@@ -257,8 +267,11 @@ static bool isSensorInPosition(int x, int y, Sensor sensor) {
 		case STINK:
 			query = "fedor";
 			break;
-		case SCREAM:
+		case BAT_SCREAM:
 			query = "grito";
+			break;
+		case WUMPUS_SCREAM:
+			query = "gritow";
 			break;
 		case GLITTER:
 			query = "brilho";
@@ -268,9 +281,9 @@ static bool isSensorInPosition(int x, int y, Sensor sensor) {
 			return false;
 	}
 	PlTermv av(2);
-	PlQuery q(query, av);
 	av[0] = x;
 	av[1] = y;
+	PlQuery q(query, av);
  	return q.next_solution();
 }
 
@@ -283,6 +296,16 @@ static bool isAlive() {
 	}
 	return strcmp(state, "vivo") == 0;
 }
+
+static bool isKnowledgeInPosition(int x, int y, KnowledgeType k) {
+	PlTermv av(3);
+	av[0] = x;
+	av[1] = y;
+	av[2] = knowledgeStrings[k];
+	PlQuery q("conhecimento", av);
+	return q.next_solution();
+}
+
 
 static void printColor(char *txt, int color) {
 	HANDLE console;
@@ -311,4 +334,20 @@ static void turn(int n) {
 
 static void shoot() {
 	PlCall("atirar", NULL);
+}
+
+static void addKnowledgeToPosition(int x, int y, KnowledgeType k) {
+	PlTermv av(3);
+	av[0] = x;
+	av[1] = y;
+	av[2] = knowledgeStrings[k];
+	PlCall("adicionarConhecimento", av);
+}
+
+static void removeKnowledgeFromPosition(int x, int y, KnowledgeType k) {
+	PlTermv av(3);
+	av[0] = x;
+	av[1] = y;
+	av[2] = knowledgeStrings[k];
+	PlCall("removeConhecimento", av);
 }
