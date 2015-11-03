@@ -3,7 +3,7 @@
  * GUSTAVO MARTINS E HUGO GROCHAU
  * DATA : 02/11/2015
  * INTELIGENCIA ARTIFICIAL
- * VERSION 1.0a
+ * VERSION 1.1a
  * ******************************/
 
 /**************************************
