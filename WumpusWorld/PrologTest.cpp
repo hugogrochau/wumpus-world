@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <stdlib.h>
 #include <conio.h>
+#include <string.h>
 #include "programpath.h"
 
 #define WORLD_LEN 6
@@ -15,7 +16,7 @@ enum Reward {ouro = FOREGROUND_BLUE|FOREGROUND_RED };
 enum Direction {NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3};
 enum Sensor {NONE, WALL, BREEZE, STINK, SCREAM, GLITTER};
 
-static const char * sensorString[] = {
+static const char * sensorsStrings[] = {
 	"None", "Wall", "Breeze", "Stink", "Scream", "Glitter"
 };
 
@@ -37,7 +38,9 @@ static void getObstacle();
 static void getReward();
 static void getAgentPosition();
 static int getScore();
-static Sensor getSensor();
+static void getSensors(bool *);
+static void getSensorsString(bool *, char *);
+
 
 static bool isAlive();
 static bool isSensorInAgentPosition(Sensor);
@@ -149,7 +152,11 @@ static void printWorld() {
 	printColor(isAlive() ? "alive" : "dead", isAlive() ? FOREGROUND_GREEN : FOREGROUND_RED);
 	printf("\n");
 
-	printf("Current sensor: %s", sensorString[getSensor()]);
+	bool sensors[6] = { false, false, false, false, false };
+	char str[255] = "";
+	getSensors(sensors);
+	getSensorsString(sensors, str);
+	printf("Current sensors: %s", str);
 	printf("\n");
 }
 
@@ -207,21 +214,30 @@ static int getScore() {
 	return score;
 }
 
-static Sensor getSensor() {
+void getSensorsString(bool * sensors, char * str) {
+	for (int i = 0; i < 6; i++) {
+		if (sensors[i]) {
+			strcat(str, sensorsStrings[i]);
+			strcat(str, ", ");
+		}
+	}
+}
+
+static void getSensors(bool *sensors) {
 	if (isSensorInAgentPosition(WALL)) {
-		return WALL;
+		sensors[WALL] = true;
 	}
 	if (isSensorInAgentPosition(BREEZE)) {
-		return BREEZE;
+		sensors[BREEZE] = true;
 	}
 	if (isSensorInAgentPosition(STINK)) {
-		return STINK;
+		sensors[STINK] = true;
 	}
 	if (isSensorInAgentPosition(SCREAM)) {
-		return SCREAM;
+		sensors[SCREAM] = true;
 	}
 	if (isSensorInAgentPosition(GLITTER)) {
-		return GLITTER;
+		sensors[GLITTER] = true;
 	}
 }
 
@@ -230,7 +246,6 @@ static bool isSensorInAgentPosition(Sensor sensor) {
 }
 
 static bool isSensorInPosition(int x, int y, Sensor sensor) {
-	bool result;
 	char* query = "";
 	switch (sensor) {
 		case  WALL:
