@@ -11,14 +11,15 @@
  **************************************/
 
 :- dynamic
-	   obstaculo/3,  %indica se possui um obstaculo em uma posicao X,Y : obstaculo(X,Y,OBS)
-	                 %OBS(abismo,wumpos,morcego,falso)
-	   recompensa/3, %indica se possui uma recompensa em uma posicao X,Y : recompensa(X,Y,REC)  Rec(ouro ou false)
-	   pontuacao/1,	 %indica a atual posicao do jogo : pontuacao(P)	P(valor inteiro)
-	   posicao/2,    %indica a atual posicao do agente : posicao(X,Y)
-	   direcao/1,    %indica a direcao para a qual o agente esta olhando : direcao(DIR)  Dir(norte,leste,oeste,sul)
-	   estado/1,     %indica se o agente esta vivo ou morto : estado(EST)  Est(vivo ou morto)
-       eJogo/1.      %indica se o jogo esta em execucao ou se chegou ao fim : eJogo(EST)  Est(execucao ou fim)
+	   obstaculo/3,    %indica se possui um obstaculo em uma posicao X,Y : obstaculo(X,Y,OBS)
+	                   %OBS(abismo,wumpos,morcego,falso)
+	   recompensa/3,   %indica se possui uma recompensa em uma posicao X,Y : recompensa(X,Y,REC)  Rec(ouro ou false)
+	   pontuacao/1,	   %indica a atual posicao do jogo : pontuacao(P)	P(valor inteiro)
+	   posicao/2,      %indica a atual posicao do agente : posicao(X,Y)
+	   direcao/1,      %indica a direcao para a qual o agente esta olhando : direcao(DIR)  Dir(norte,leste,oeste,sul)
+	   estado/1,       %indica se o agente esta vivo ou morto : estado(EST)  Est(vivo ou morto)
+           eJogo/1,        %indica se o jogo esta em execucao ou se chegou ao fim : eJogo(EST)  Est(execucao ou fim)
+	   conhecimento/3. %indica o conhecimento que o agente tem
 
 /****************
  * CONSTANTES
@@ -93,8 +94,10 @@ removeDirecao     :- direcao(D),retract(direcao(D)),removeDirecao.
 removePosicao     :- posicao(X,Y),retract(posicao(X,Y)),removePosicao.
 removeEstado      :- estado(E),retract(estado(E)),removeEstado.
 removeEstadoJogo  :- eJogo(EST),retract(eJogo(EST)),removeEstadoJogo.
+removeConhecimento:- conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)),removeConhecimento.
+removeConhecimento(X,Y) :- (conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)));true.
 removeTudo        :- removeObstaculo;removeRecompensa;removePontuacao;removeDirecao;
-		     removePosicao;removeEstado;removeEstadoJogo.
+		     removePosicao;removeEstado;removeEstadoJogo,removeConhecimento.
 % Reinicia o mundo usando valores constantes
 reiniciarC	  :- removeTudo;init.
 % Reinicia o mundo usando valores randomicos
@@ -125,6 +128,11 @@ simulaAndar(X,Y)  :- posicao(AX,AY),direcao(DIR),((DIR==norte,X is AX,Y is AY - 
 						  (DIR==sul  ,X is AX,Y is AY + 1);
 						  (DIR==leste,X is AX + 1, Y is AY);
 						  (DIR==oeste,X is AX - 1, Y is AY)).
+
+% Adiciona conhecimento a base de dados
+adicionarConhecimento(X,Y,CON) :- not(conhecimento(X,Y,_)),assert(conhecimento(X,Y,CON)).
+% Sobrescreve um conhecimento de uma posicao X,Y
+setarConhecimento(X,Y,CON)     :- removeConhecimento(X,Y),adicionarConhecimento(X,Y,CON).
 % TENTA MATAR O WUMPOS EM UMA POSICAO X,Y
 killw(X,Y) :- obstaculo(X,Y,wumpos),retract(obstaculo(X,Y,wumpos)).
 
@@ -149,7 +157,7 @@ andar	   :- decPontuacao(1),simulaAndar(X,Y),(parede(X,Y);(setarPosicao(X,Y),pon
 	      efeitoMorcego.
 
 % ANDA N VEZES
-andar(N)   :- (N > 0,andar,NN is N-1,virar(NN));true.
+andar(N)   :- (N > 0,andar,NN is N-1,andar(NN));true.
 
 % VIRA A DIRECAO EM QUE O AGENTE ESTA OLHANDO NO SENTIDO HORARIO DO
 % RELOGIO
