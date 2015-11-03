@@ -13,6 +13,11 @@ using namespace std;
 enum Obstacle {abismo = FOREGROUND_GREEN, morcego = FOREGROUND_BLUE, wumpos = FOREGROUND_RED};
 enum Reward {ouro = FOREGROUND_BLUE|FOREGROUND_RED };
 enum Direction {NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3};
+enum Sensor {NONE, WALL, BREEZE, STINK, SCREAM, GLITTER};
+
+static const char * sensorString[] = {
+	"None", "Wall", "Breeze", "Stink", "Scream", "Glitter"
+};
 
 static void initializeWorld();
 static void restartWorld();
@@ -32,7 +37,11 @@ static void getObstacle();
 static void getReward();
 static void getAgentPosition();
 static int getScore();
+static Sensor getSensor();
 
+static bool isAlive();
+static bool isSensorInAgentPosition(Sensor);
+static bool isSensorInPosition(int, int, Sensor);
 
 char world[WORLD_LEN][WORLD_LEN];
 int posx = 1;
@@ -136,6 +145,12 @@ static void printWorld() {
 	printf("Score: %d", getScore());
 	printf("\n");
 
+	printf("Player is ");
+	printColor(isAlive() ? "alive" : "dead", isAlive() ? FOREGROUND_GREEN : FOREGROUND_RED);
+	printf("\n");
+
+	printf("Current sensor: %s", sensorString[getSensor()]);
+	printf("\n");
 }
 
 static void getObstacle() {
@@ -190,6 +205,68 @@ static int getScore() {
 		score = (int) av[0];
 	}
 	return score;
+}
+
+static Sensor getSensor() {
+	if (isSensorInAgentPosition(WALL)) {
+		return WALL;
+	}
+	if (isSensorInAgentPosition(BREEZE)) {
+		return BREEZE;
+	}
+	if (isSensorInAgentPosition(STINK)) {
+		return STINK;
+	}
+	if (isSensorInAgentPosition(SCREAM)) {
+		return SCREAM;
+	}
+	if (isSensorInAgentPosition(GLITTER)) {
+		return GLITTER;
+	}
+}
+
+static bool isSensorInAgentPosition(Sensor sensor) {
+	return isSensorInPosition(posx, posy, sensor);
+}
+
+static bool isSensorInPosition(int x, int y, Sensor sensor) {
+	bool result;
+	char* query = "";
+	switch (sensor) {
+		case  WALL:
+			query = "parede";
+			break;
+		case BREEZE:
+			query = "brisa";
+			break;
+		case STINK:
+			query = "fedor";
+			break;
+		case SCREAM:
+			query = "grito";
+			break;
+		case GLITTER:
+			query = "brilho";
+			break;
+		case NONE:
+		default: 
+			return false;
+	}
+	PlTermv av(2);
+	PlQuery q(query, av);
+	av[0] = x;
+	av[1] = y;
+ 	return q.next_solution();
+}
+
+static bool isAlive() {
+	char *state = "";
+	PlTermv av(1);
+	PlQuery q("estado", av);
+	while (q.next_solution()) {
+		state = (char *) av[0];
+	}
+	return strcmp(state, "vivo") == 0;
 }
 
 static void printColor(char *txt, int color) {
