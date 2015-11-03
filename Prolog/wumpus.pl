@@ -1,5 +1,5 @@
 /********************************
- * MUNDO WUMPOS
+ * MUNDO WUMPUS
  * GUSTAVO MARTINS E HUGO GROCHAU
  * DATA : 02/11/2015
  * INTELIGENCIA ARTIFICIAL
@@ -12,7 +12,7 @@
 
 :- dynamic
 	   obstaculo/3,    %indica se possui um obstaculo em uma posicao X,Y : obstaculo(X,Y,OBS)
-	                   %OBS(abismo,wumpos,morcego,falso)
+	                   %OBS(abismo,wumpus,morcego,falso)
 	   recompensa/3,   %indica se possui uma recompensa em uma posicao X,Y : recompensa(X,Y,REC)  Rec(ouro ou false)
 	   pontuacao/1,	   %indica a atual posicao do jogo : pontuacao(P)	P(valor inteiro)
 	   posicao/2,      %indica a atual posicao do agente : posicao(X,Y)
@@ -26,7 +26,7 @@
  ***************/
 
 tamanhoMundo(6).     %Tamanho do mundo deve ser > 1
-qtdWumpos(2).        %Quantidade de wumpos no jogo
+qtdWumpus(2).        %Quantidade de wumpus no jogo
 qtdAbismo(4).        %Quantidade de abismos no jogo
 qtdOuro(3).	     %Quantidade de ouro no jogo
 qtdMorcego(2).       %Quantidade de morcegos no jogo
@@ -43,10 +43,10 @@ adjacente(X,Y,A,B) :- (A is X+1,B is Y);
 
 /* Sensores */
 parede(X,Y) :- tamanhoMundo(TAM),(X > TAM;X < 1;Y < 1;Y > TAM).
-brisa(X,Y) :- not(parede(X,Y)),adjacente(X,Y,Z,W),obstaculo(Z,W,abismo).
-fedor(X,Y) :- not(parede(X,Y)),adjacente(X,Y,Z,W),obstaculo(Z,W,wumpos).
-grito(X,Y) :- not(parede(X,Y)),adjacente(X,Y,Z,W),obstaculo(Z,W,morcego).
-brilho(X,Y):- not(parede(X,Y)),recompensa(X,Y,ouro).
+brisa(X,Y)  :- not(parede(X,Y)),adjacente(X,Y,Z,W),obstaculo(Z,W,abismo).
+fedor(X,Y)  :- not(parede(X,Y)),adjacente(X,Y,Z,W),obstaculo(Z,W,wumpus).
+grito(X,Y)  :- not(parede(X,Y)),adjacente(X,Y,Z,W),obstaculo(Z,W,morcego).
+brilho(X,Y ):- not(parede(X,Y)),recompensa(X,Y,ouro).
 
 /*******************************
  * FUNCOES INTERNAS DO PROGRAMA
@@ -58,7 +58,7 @@ iniciarValoresDefault :- posicaoInicial(X,Y),assert(pontuacao(0)),assert(posicao
 
 % Inicia o mundo com valores constantes
 init :-   assert(obstaculo(1,1,abismo)),
-	  assert(obstaculo(1,2,wumpos)),
+	  assert(obstaculo(1,2,wumpus)),
 	  assert(obstaculo(1,3,abismo)),
 	  assert(obstaculo(1,4,morcego)),
 	  assert(recompensa(1,5,ouro)),
@@ -81,9 +81,9 @@ gerarRecompensas(N,REC) :-  (N > 0,tamanhoMundo(TAM),random_between(1,TAM,RX),ra
 			    );gerarRecompensas(N,REC));true).
 
 % Gera um mundo randomico usando valores pre definidos
-% (QTDOURO,QTDMORCEGO,QTDABISMO,QTDWUMPOS)
-gerarMundoRandomico  :- qtdOuro(QOURO),qtdMorcego(QMORCEGO),qtdAbismo(QABISMO),qtdWumpos(QWUMPOS),
-			gerarObstaculos(QABISMO,abismo),gerarObstaculos(QMORCEGO,morcego),gerarObstaculos(QWUMPOS,wumpos),
+% (QTDOURO,QTDMORCEGO,QTDABISMO,QTDWUMPUS)
+gerarMundoRandomico  :- qtdOuro(QOURO),qtdMorcego(QMORCEGO),qtdAbismo(QABISMO),qtdWumpus(QWUMPUS),
+			gerarObstaculos(QABISMO,abismo),gerarObstaculos(QMORCEGO,morcego),gerarObstaculos(QWUMPUS,wumpus),
 			gerarRecompensas(QOURO,ouro),iniciarValoresDefault,atualizarConhecimento.
 
 /* FUNCOES DE REINICIALIZACAO */
@@ -116,7 +116,7 @@ matar             :- removeEstado;assert(estado(morto)).
 % SE ELE TA NUM ABISMO, ELE MORRE E PERDE 1000 PONTOS)
 pontuacaoCondicao :- posicao(X,Y),(obstaculo(X,Y,OBS),
 		    ((OBS==abismo,decPontuacao(1000),matar);
-		     (OBS==wumpos,decPontuacao(1000),matar)));true.
+		     (OBS==wumpus,decPontuacao(1000),matar)));true.
 % COLOCA O AGENTE EM UMA POSICAO X,Y
 setarPosicao(X,Y) :- removePosicao;assert(posicao(X,Y)).
 % SETA O ESTADO DO JOGO PARA O VALOR DE EST. LEMBRE QUE EST(execucao ou
@@ -135,13 +135,13 @@ adicionarConhecimento(X,Y,CON) :- not(conhecimento(X,Y,CON)),assert(conhecimento
 
 % Adicionar conhecimentos de uma certa posicao X,Y
 adicionaCMorcego(X,Y) :- (obstaculo(X,Y,morcego),assert(conhecimento(X,Y,morcego)));true.
-adicionaCWumpos(X,Y)  :- (obstaculo(X,Y,wumpos),assert(conhecimento(X,Y,wumpos)));true.
+adicionaCWumpus(X,Y)  :- (obstaculo(X,Y,wumpus),assert(conhecimento(X,Y,wumpus)));true.
 adicionaCAbismo(X,Y)  :- (obstaculo(X,Y,abismo),assert(conhecimento(X,Y,abismo)));true.
 adicionaCBrisa(X,Y)   :- (brisa(X,Y),assert(conhecimento(X,Y,brisa)));true.
 adicionaCFedor(X,Y)   :- (fedor(X,Y),assert(conhecimento(X,Y,fedor)));true.
 adicionaCBrilho(X,Y)  :- (brilho(X,Y),assert(conhecimento(X,Y,brilho)));true.
 adicionaCGrito(X,Y)   :- (grito(X,Y),assert(conhecimento(X,Y,grito)));true.
-adicionaConhecimentos(X,Y) :- adicionaCMorcego(X,Y),adicionaCWumpos(X,Y),
+adicionaConhecimentos(X,Y) :- adicionaCMorcego(X,Y),adicionaCWumpus(X,Y),
 			      adicionaCAbismo(X,Y),adicionaCBrisa(X,Y),
 			      adicionaCFedor(X,Y),adicionaCBrilho(X,Y),
 			      adicionaCGrito(X,Y).
@@ -149,8 +149,8 @@ adicionaConhecimentos(X,Y) :- adicionaCMorcego(X,Y),adicionaCWumpos(X,Y),
 atualizarConhecimento      :- posicao(X,Y),removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
 atualizarConhecimento(X,Y) :- removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
 
-% TENTA MATAR O WUMPOS EM UMA POSICAO X,Y
-killw(X,Y) :- obstaculo(X,Y,wumpos),retract(obstaculo(X,Y,wumpos)).
+% TENTA MATAR O WUMPUS EM UMA POSICAO X,Y
+killw(X,Y) :- obstaculo(X,Y,wumpus),retract(obstaculo(X,Y,wumpus)).
 
 % Executa o efeito morcego. Caso tenha um morcego onde o jogador esta,
 % ele vai para uma posicao randomica valida
