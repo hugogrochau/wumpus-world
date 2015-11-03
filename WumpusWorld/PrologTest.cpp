@@ -4,8 +4,8 @@
 #include <windows.h>
 #include <stdlib.h>
 #include <conio.h>
+#include "programpath.h"
 
-#define PROGRAM_PATH "C:\\Users\\guga\\C Workspace\\WumposWorld\\Prolog\\wumpos.pl"
 #define WORLD_LEN 6
 
 using namespace std;
@@ -31,6 +31,7 @@ static void shoot();
 static void getObstacle();
 static void getReward();
 static void getAgentPosition();
+static int getScore();
 
 
 char world[WORLD_LEN][WORLD_LEN];
@@ -132,6 +133,9 @@ static void printWorld() {
 		}
 		printf("\n");
 	}
+	printf("Score: %d", getScore());
+	printf("\n");
+
 }
 
 static void getObstacle() {
@@ -163,8 +167,8 @@ static void getReward() {
 	int x, y;
 	Reward color = ouro;
 	while (q.next_solution()) {
-		x = (int)av[0] - 1;
-		y = (int)av[1] - 1;
+		x = (int) av[0] - 1;
+		y = (int) av[1] - 1;
 		world[y][x] = color;
 	}
 }
@@ -173,9 +177,19 @@ static void getAgentPosition() {
 	PlTermv av(2);
 	PlQuery q("posicao", av);
 	while (q.next_solution()) {
-		posx = av[0];
-		posy = av[1];
+		posx = (int) av[0];
+		posy = (int) av[1];
 	}
+}
+
+static int getScore() {
+	int score = 0;
+	PlTermv av(1);
+	PlQuery q("pontuacao", av);
+	while (q.next_solution()) {
+		score = (int) av[0];
+	}
+	return score;
 }
 
 static void printColor(char *txt, int color) {

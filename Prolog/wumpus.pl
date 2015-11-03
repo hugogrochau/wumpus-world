@@ -9,14 +9,15 @@
  * DEFINICAO DOS PREDICADOS DINAMICOS
  **************************************/
 
-:- dynamic obstaculo/3,  %indica se possui um obstaculo em uma posicao X,Y : obstaculo(X,Y,OBS)
+:- dynamic
+	   obstaculo/3,  %indica se possui um obstaculo em uma posicao X,Y : obstaculo(X,Y,OBS)
 	                 %OBS(abismo,wumpos,morcego,falso)
 	   recompensa/3, %indica se possui uma recompensa em uma posicao X,Y : recompensa(X,Y,REC)  Rec(ouro ou false)
 	   pontuacao/1,	 %indica a atual posicao do jogo : pontuacao(P)	P(valor inteiro)
 	   posicao/2,    %indica a atual posicao do agente : posicao(X,Y)
 	   direcao/1,    %indica a direcao para a qual o agente esta olhando : direcao(DIR)  Dir(norte,leste,oeste,sul)
 	   estado/1,     %indica se o agente esta vivo ou morto : estado(EST)  Est(vivo ou morto)
-           eJogo/1.      %indica se o jogo esta em execucao ou se chegou ao fim : eJogo(EST)  Est(execucao ou fim)
+       eJogo/1.      %indica se o jogo esta em execucao ou se chegou ao fim : eJogo(EST)  Est(execucao ou fim)
 
 /****************
  * CONSTANTES
