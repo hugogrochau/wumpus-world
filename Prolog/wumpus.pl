@@ -140,9 +140,11 @@ adicionaCAbismo(X,Y)  :- (obstaculo(X,Y,abismo),assert(conhecimento(X,Y,abismo))
 adicionaCBrisa(X,Y)   :- (brisa(X,Y),assert(conhecimento(X,Y,brisa)));true.
 adicionaCFedor(X,Y)   :- (fedor(X,Y),assert(conhecimento(X,Y,fedor)));true.
 adicionaCBrilho(X,Y)  :- (brilho(X,Y),assert(conhecimento(X,Y,brilho)));true.
+adicionaCGrito(X,Y)   :- (grito(X,Y),assert(conhecimento(X,Y,grito)));true.
 adicionaConhecimentos(X,Y) :- adicionaCMorcego(X,Y),adicionaCWumpos(X,Y),
 			      adicionaCAbismo(X,Y),adicionaCBrisa(X,Y),
-			      adicionaCFedor(X,Y),adicionaCBrilho(X,Y).
+			      adicionaCFedor(X,Y),adicionaCBrilho(X,Y),
+			      adicionaCGrito(X,Y).
 
 atualizarConhecimento      :- posicao(X,Y),removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
 atualizarConhecimento(X,Y) :- removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
