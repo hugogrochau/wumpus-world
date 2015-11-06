@@ -6,6 +6,13 @@
  * VERSION 1.2a
  * ******************************/
 
+/********************
+ * ARQUIVOS EXTERNOS
+ ********************/
+
+:- include('minilstlib.pl').
+
+
 /**************************************
  * DEFINICAO DOS PREDICADOS DINAMICOS
  **************************************/
@@ -20,7 +27,8 @@
 	   estado/1,       %indica se o agente esta vivo ou morto : estado(EST)  Est(vivo ou morto)
            eJogo/1,        %indica se o jogo esta em execucao ou se chegou ao fim : eJogo(EST)  Est(execucao ou fim)
 	   conhecimento/3, %indica o conhecimento que o agente tem
-           qtdFlecha/1.    %indica a quantidade de flecha que o agente possui
+           qtdFlecha/1,    %indica a quantidade de flecha que o agente possui
+	   acao/1.	   %indica as acoes que o agente executou
 
 /****************
  * CONSTANTES
@@ -54,8 +62,9 @@ brilho(X,Y) :- not(parede(X,Y)),recompensa(X,Y,ouro).
  *******************************/
 
 /* FUNCOES DE INICIALIZACAO */
-iniciarValoresDefault :- posicaoInicial(X,Y),assert(pontuacao(0)),assert(posicao(X,Y)),assert(direcao(norte)),
-			 assert(estado(vivo)),assert(eJogo(execucao)),assert(qtdFlecha(3)).
+iniciarValoresDefault :- posicaoInicial(X,Y),assert(pontuacao(0)),assert(posicao(X,Y)),
+assert(direcao(norte)),assert(estado(vivo)),assert(eJogo(execucao)),assert(qtdFlecha(3)),
+assert(acao([])).
 
 % Inicia o mundo com valores constantes
 init :-   assert(obstaculo(1,1,abismo)),
@@ -88,6 +97,7 @@ gerarMundoRandomico  :- qtdOuro(QOURO),qtdMorcego(QMORCEGO),qtdAbismo(QABISMO),q
 			gerarRecompensas(QOURO,ouro),iniciarValoresDefault,atualizarConhecimento.
 
 /* FUNCOES DE REINICIALIZACAO */
+removeAcoes                 :- acao(L),retract(acao(L)),removeAcoes.
 removeFlecha                :- qtdFlecha(Q),retract(qtdFlecha(Q)),removeFlecha.
 removeObstaculo             :- obstaculo(X,Y,OBS),retract(obstaculo(X,Y,OBS)),removeObstaculo.
 removeRecompensa            :- recompensa(X,Y,RE),retract(recompensa(X,Y,RE)),removeRecompensa.
@@ -100,7 +110,7 @@ removeConhecimento          :- conhecimento(X,Y,CON),retract(conhecimento(X,Y,CO
 removeConhecimento(X,Y,CON) :- (conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)));true.
 removeConhecimento(X,Y)     :- (conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)),removeConhecimento(X,Y));true.
 removeTudo                  :- removeObstaculo;removeRecompensa;removePontuacao;removeDirecao;
-		               removePosicao;removeEstado;removeEstadoJogo;removeConhecimento;removeFlecha.
+		               removePosicao;removeEstado;removeEstadoJogo;removeConhecimento;removeFlecha;removeAcoes.
 % Reinicia o mundo usando valores constantes
 reiniciarC	  :- removeTudo;init.
 % Reinicia o mundo usando valores randomicos
@@ -157,30 +167,35 @@ atualizarConhecimento :- posicao(X,Y),removeConhecimento(X,Y),adicionaConhecimen
 atualizarConhecimento(X,Y) :- removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
 
 % TENTA MATAR UM OBSTACULO EM UMA POSICAO X,Y
-matarObstaculo(X,Y,E) :- obstaculo(X,Y,E),retract(obstaculo(X,Y,E)).
+matarObstaculo(X,Y) :- obstaculo(X,Y,E),(E \= abismo),retract(obstaculo(X,Y,E)),atom_concat(matar,E,ME),adicionaAcao(ME).
 
 % Executa o efeito morcego. Caso tenha um morcego onde o jogador esta,
 % ele vai para uma posicao randomica valida
 efeitoMorcego :- (posicao(X,Y),obstaculo(X,Y,morcego),randomizarPosicao,atualizarConhecimento,pontuacaoCondicao,
-		  efeitoMorcego);true.
+		  adicionaAcao(efeitoMorcego),efeitoMorcego);true.
+
+/********************************
+ * LOG DE ACOES
+ ********************************/
+adicionaAcao(NOME) :- posicao(X,Y), A = [X,Y,NOME], acao(AS),lstPushE(A,AS,NAS),(removeAcoes;assert(acao(NAS))).
 
 /********************************
  * ACOES QUE O AGENTE PODE TOMAR
  ********************************/
 
 % ATIRA UMA FLECHA NA POSICAO ATUAL
-atirar :- posicao(X,Y),qtdFlecha(Q),Q > 0,
-	(matarObstaculo(X,Y,wumpus);
-	matarObstaculo(X,Y,morcego)),
-	decPontuacao(10),decFlecha,atualizarConhecimento.
+atirar :- posicao(X,Y),qtdFlecha(Q),Q > 0,matarObstaculo(X,Y),decPontuacao(10),decFlecha,atualizarConhecimento,
+	adicionaAcao(atirar).
 
 % TENTA PEGAR O OURO DA POSICAO ATUAL DO AGENTE
 pegarOuro :- decPontuacao(1),posicao(X,Y),recompensa(X,Y,ouro),retract(recompensa(X,Y,ouro)),addPontuacao(1000),
-	      atualizarConhecimento.
+	      atualizarConhecimento,adicionaAcao(pegarOuro).
 
 % ANDA NA DIRECAO EM QUE O AGENTE ESTA OLHANDO, SE FOR PAREDE O AGENTE
 % NAO ANDA.
-andar(X,Y) :- posicao(PX,PY),validaPosicao(X,Y),adjacente(X,Y,PX,PY),decPontuacao(1),setarPosicao(X,Y),pontuacaoCondicao,atualizarConhecimento,efeitoMorcego.
+andar(X,Y) :- posicao(PX,PY),validaPosicao(X,Y),adjacente(X,Y,PX,PY),decPontuacao(1),setarPosicao(X,Y),pontuacaoCondicao,
+	atualizarConhecimento,adicionaAcao(andar),efeitoMorcego.
+
 
 
 
