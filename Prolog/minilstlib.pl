@@ -24,6 +24,23 @@ getElement(LST,IDX,E) :- NIDX is IDX - 1, getHead(LST,H), ((NIDX == -1,E=H);
 
 lstAppend([],L,L).
 lstAppend([HA|TA],LB,[HA|L3]) :- lstAppend(TA,LB,L3).
+
 lstPushB(ELEM,L,[ELEM|L]).
+
 lstPushE(ELEM,[],[ELEM]).
 lstPushE(ELEM,[H|T],[H|L]) :- lstPushE(ELEM,T,L).
+
+lstRemoveB([],[]).
+lstRemoveB([_|T],T).
+
+lstRemoveE([],[]).
+lstRemoveE([_],[]).
+lstRemoveE([H|T],[H|NT]) :- lstRemoveE(T,NT).
+
+lstIsEmpty(L) :- length(L,Q),Q == 0.
+
+
+
+
+
+
