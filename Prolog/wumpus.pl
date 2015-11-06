@@ -131,8 +131,6 @@ pontuacaoCondicao :- posicao(X,Y),(obstaculo(X,Y,OBS),
 		    ((OBS==abismo,decPontuacao(1000),matarAgente);
 		     (OBS==wumpus,decPontuacao(1000),matarAgente)));true.
 
-
-
 validaPosicao(X,Y) :- tamanhoMundo(T), X >= 1, X =< T, Y >= 1, Y =< T.
 % COLOCA O AGENTE EM UMA POSICAO X,Y
 setarPosicao(X,Y) :- removePosicao;assert(posicao(X,Y)).
@@ -173,6 +171,12 @@ matarObstaculo(X,Y) :- obstaculo(X,Y,E),(E \= abismo),retract(obstaculo(X,Y,E)),
 % ele vai para uma posicao randomica valida
 efeitoMorcego :- (posicao(X,Y),obstaculo(X,Y,morcego),randomizarPosicao,atualizarConhecimento,pontuacaoCondicao,
 		  adicionaAcao(efeitoMorcego),efeitoMorcego);true.
+
+blocosAdjacentes(X,Y,L) :- LX is X+1,OX is X-1,NY is Y-1,SY is Y+1,L = [[LX,Y],[OX,Y],[X,SY],[X,NY]].
+
+movimentosPossiveis(L) :- posicao(X,Y),blocosAdjacentes(X,Y,LA),include(quadradoPossivel,LA,L).
+
+quadradoPossivel([X|[Y|_]]) :- qtdFlecha(Q),validaPosicao(X,Y),not(obstaculo(X,Y,abismo)),(Q > 0;not(obstaculo(X,Y,wumpus))).
 
 /********************************
  * LOG DE ACOES
