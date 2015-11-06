@@ -19,7 +19,8 @@
 	   direcao/1,      %indica a direcao para a qual o agente esta olhando : direcao(DIR)  Dir(norte,leste,oeste,sul)
 	   estado/1,       %indica se o agente esta vivo ou morto : estado(EST)  Est(vivo ou morto)
            eJogo/1,        %indica se o jogo esta em execucao ou se chegou ao fim : eJogo(EST)  Est(execucao ou fim)
-	   conhecimento/3. %indica o conhecimento que o agente tem
+	   conhecimento/3, %indica o conhecimento que o agente tem
+           qtdFlecha/1.    %indica a quantidade de flecha que o agente possui
 
 /****************
  * CONSTANTES
@@ -54,7 +55,7 @@ brilho(X,Y) :- not(parede(X,Y)),recompensa(X,Y,ouro).
 
 /* FUNCOES DE INICIALIZACAO */
 iniciarValoresDefault :- posicaoInicial(X,Y),assert(pontuacao(0)),assert(posicao(X,Y)),assert(direcao(norte)),
-			 assert(estado(vivo)),assert(eJogo(execucao)).
+			 assert(estado(vivo)),assert(eJogo(execucao)),assert(qtdFlecha(3)).
 
 % Inicia o mundo com valores constantes
 init :-   assert(obstaculo(1,1,abismo)),
@@ -87,6 +88,7 @@ gerarMundoRandomico  :- qtdOuro(QOURO),qtdMorcego(QMORCEGO),qtdAbismo(QABISMO),q
 			gerarRecompensas(QOURO,ouro),iniciarValoresDefault,atualizarConhecimento.
 
 /* FUNCOES DE REINICIALIZACAO */
+removeFlecha                :- qtdFlecha(Q),retract(qtdFlecha(Q)),removeFlecha.
 removeObstaculo             :- obstaculo(X,Y,OBS),retract(obstaculo(X,Y,OBS)),removeObstaculo.
 removeRecompensa            :- recompensa(X,Y,RE),retract(recompensa(X,Y,RE)),removeRecompensa.
 removePontuacao             :- pontuacao(P),retract(pontuacao(P)),removePontuacao.
@@ -98,25 +100,30 @@ removeConhecimento          :- conhecimento(X,Y,CON),retract(conhecimento(X,Y,CO
 removeConhecimento(X,Y,CON) :- (conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)));true.
 removeConhecimento(X,Y)     :- (conhecimento(X,Y,CON),retract(conhecimento(X,Y,CON)),removeConhecimento(X,Y));true.
 removeTudo                  :- removeObstaculo;removeRecompensa;removePontuacao;removeDirecao;
-		               removePosicao;removeEstado;removeEstadoJogo;removeConhecimento.
+		               removePosicao;removeEstado;removeEstadoJogo;removeConhecimento;removeFlecha.
 % Reinicia o mundo usando valores constantes
 reiniciarC	  :- removeTudo;init.
 % Reinicia o mundo usando valores randomicos
 reiniciarR        :- removeTudo;gerarMundoRandomico.
 
 /* FUNCOES AUXILIARES */
-
+%DECREMENTA A QUANTIDADE DE FLECHAS
+decFlecha :- qtdFlecha(Q),NQ is Q-1,not(removeFlecha),assert(qtdFlecha(NQ)).
 %DECREMENTA A PONTUACAO POR UM VALOR X
 decPontuacao(X)   :- pontuacao(P),NP is P - X,retract(pontuacao(P)),assert(pontuacao(NP)).
 %AUMENTA A PONTUACAO POR UM VALOR X
 addPontuacao(X)   :- pontuacao(P),NP is P + X,retract(pontuacao(P)),assert(pontuacao(NP)).
 %MATA O AGENTE
-matar             :- removeEstado;assert(estado(morto)).
+matarAgente             :- removeEstado;assert(estado(morto)).
 % CALCULA A NOVA PONTUACAO DE ACORDO COM A ATUAL POSICAO DO AGENTE(EX :
 % SE ELE TA NUM ABISMO, ELE MORRE E PERDE 1000 PONTOS)
 pontuacaoCondicao :- posicao(X,Y),(obstaculo(X,Y,OBS),
-		    ((OBS==abismo,decPontuacao(1000),matar);
-		     (OBS==wumpus,decPontuacao(1000),matar)));true.
+		    ((OBS==abismo,decPontuacao(1000),matarAgente);
+		     (OBS==wumpus,decPontuacao(1000),matarAgente)));true.
+
+
+
+validaPosicao(X,Y) :- tamanhoMundo(T), X >= 1, X =< T, Y >= 1, Y =< T.
 % COLOCA O AGENTE EM UMA POSICAO X,Y
 setarPosicao(X,Y) :- removePosicao;assert(posicao(X,Y)).
 % SETA O ESTADO DO JOGO PARA O VALOR DE EST. LEMBRE QUE EST(execucao ou
@@ -140,17 +147,17 @@ adicionaCAbismo(X,Y)  :- (obstaculo(X,Y,abismo),assert(conhecimento(X,Y,abismo))
 adicionaCBrisa(X,Y)   :- (brisa(X,Y),assert(conhecimento(X,Y,brisa)));true.
 adicionaCFedor(X,Y)   :- (fedor(X,Y),assert(conhecimento(X,Y,fedor)));true.
 adicionaCBrilho(X,Y)  :- (brilho(X,Y),assert(conhecimento(X,Y,brilho)));true.
-adicionaCGrito(X,Y)   :- (grito(X,Y),assert(conhecimento(X,Y,grito)));true.
+adicionaCGrito(X,Y) :- (grito(X,Y),assert(conhecimento(X,Y,grito)));true.
 adicionaConhecimentos(X,Y) :- adicionaCMorcego(X,Y),adicionaCWumpus(X,Y),
 			      adicionaCAbismo(X,Y),adicionaCBrisa(X,Y),
 			      adicionaCFedor(X,Y),adicionaCBrilho(X,Y),
 			      adicionaCGrito(X,Y).
 
-atualizarConhecimento      :- posicao(X,Y),removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
+atualizarConhecimento :- posicao(X,Y),removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
 atualizarConhecimento(X,Y) :- removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
 
-% TENTA MATAR O WUMPUS EM UMA POSICAO X,Y
-killw(X,Y) :- obstaculo(X,Y,wumpus),retract(obstaculo(X,Y,wumpus)).
+% TENTA MATAR UM OBSTACULO EM UMA POSICAO X,Y
+matarObstaculo(X,Y,E) :- obstaculo(X,Y,E),retract(obstaculo(X,Y,E)).
 
 % Executa o efeito morcego. Caso tenha um morcego onde o jogador esta,
 % ele vai para uma posicao randomica valida
@@ -161,29 +168,35 @@ efeitoMorcego :- (posicao(X,Y),obstaculo(X,Y,morcego),randomizarPosicao,atualiza
  * ACOES QUE O AGENTE PODE TOMAR
  ********************************/
 
-% ATIRA UMA FLECHA NA DIRECAO EM QUE O AGENTE ESTA OLHANDO (APENAS 1
-% QUADRADO A FRENTE)
-atirar     :- decPontuacao(1),decPontuacao(10),simulaAndar(X,Y),killw(X,Y),atualizarConhecimento.
+% ATIRA UMA FLECHA NA POSICAO ATUAL
+atirar :- posicao(X,Y),qtdFlecha(Q),Q > 0,
+	(matarObstaculo(X,Y,wumpus);
+	matarObstaculo(X,Y,morcego)),
+	decPontuacao(10),decFlecha,atualizarConhecimento.
 
 % TENTA PEGAR O OURO DA POSICAO ATUAL DO AGENTE
-getg       :- decPontuacao(1),posicao(X,Y),recompensa(X,Y,ouro),retract(recompensa(X,Y,ouro)),addPontuacao(1000),
+pegarOuro :- decPontuacao(1),posicao(X,Y),recompensa(X,Y,ouro),retract(recompensa(X,Y,ouro)),addPontuacao(1000),
 	      atualizarConhecimento.
 
 % ANDA NA DIRECAO EM QUE O AGENTE ESTA OLHANDO, SE FOR PAREDE O AGENTE
 % NAO ANDA.
-andar	   :- decPontuacao(1),simulaAndar(X,Y),not(parede(X,Y)),setarPosicao(X,Y),pontuacaoCondicao,atualizarConhecimento,
-	      efeitoMorcego.
+andar(X,Y) :- posicao(PX,PY),validaPosicao(X,Y),adjacente(X,Y,PX,PY),decPontuacao(1),setarPosicao(X,Y),pontuacaoCondicao,atualizarConhecimento,efeitoMorcego.
 
-% ANDA N VEZES
-andar(N)   :- (N > 0,andar,NN is N-1,andar(NN));true.
 
-% VIRA A DIRECAO EM QUE O AGENTE ESTA OLHANDO NO SENTIDO HORARIO DO
-% RELOGIO
-virar      :- decPontuacao(1),direcao(D),((D==norte, ND = leste);
-					  (D==leste, ND = sul);
-			                  (D==sul  , ND = oeste);
-			                  (D==oeste, ND = norte)),
-			                  retract(direcao(D)), assert(direcao(ND)).
 
-% VIRA O AGENTE N VEZES
-virar(N)  :- ((N > 0),virar,NN is N - 1,virar(NN));true.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
