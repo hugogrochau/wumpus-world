@@ -117,6 +117,8 @@ reiniciarC	  :- removeTudo;init.
 reiniciarR        :- removeTudo;gerarMundoRandomico.
 
 /* FUNCOES AUXILIARES */
+%RETORNA AS COMPONENTES X E Y DE UMA LISTA [X,Y]
+getXY([X|[Y|_]],X,Y).
 %DECREMENTA A QUANTIDADE DE FLECHAS
 decFlecha :- qtdFlecha(Q),NQ is Q-1,not(removeFlecha),assert(qtdFlecha(NQ)).
 %DECREMENTA A PONTUACAO POR UM VALOR X
@@ -124,7 +126,7 @@ decPontuacao(X)   :- pontuacao(P),NP is P - X,retract(pontuacao(P)),assert(pontu
 %AUMENTA A PONTUACAO POR UM VALOR X
 addPontuacao(X)   :- pontuacao(P),NP is P + X,retract(pontuacao(P)),assert(pontuacao(NP)).
 %MATA O AGENTE
-matarAgente             :- removeEstado;assert(estado(morto)).
+matarAgente	  :- removeEstado;assert(estado(morto)).
 % CALCULA A NOVA PONTUACAO DE ACORDO COM A ATUAL POSICAO DO AGENTE(EX :
 % SE ELE TA NUM ABISMO, ELE MORRE E PERDE 1000 PONTOS)
 pontuacaoCondicao :- posicao(X,Y),(obstaculo(X,Y,OBS),
@@ -132,6 +134,7 @@ pontuacaoCondicao :- posicao(X,Y),(obstaculo(X,Y,OBS),
 		     (OBS==wumpus,decPontuacao(1000),matarAgente)));true.
 
 validaPosicao(X,Y) :- tamanhoMundo(T), X >= 1, X =< T, Y >= 1, Y =< T.
+validaPosicao([X|[Y|_]]) :- validaPosicao(X,Y).
 % COLOCA O AGENTE EM UMA POSICAO X,Y
 setarPosicao(X,Y) :- removePosicao;assert(posicao(X,Y)).
 % SETA O ESTADO DO JOGO PARA O VALOR DE EST. LEMBRE QUE EST(execucao ou
@@ -149,20 +152,80 @@ simulaAndar(X,Y)  :- posicao(AX,AY),direcao(DIR),((DIR==norte,X is AX,Y is AY - 
 adicionarConhecimento(X,Y,CON) :- not(conhecimento(X,Y,CON)),assert(conhecimento(X,Y,CON)).
 
 % Adicionar conhecimentos de uma certa posicao X,Y
-adicionaCMorcego(X,Y) :- (obstaculo(X,Y,morcego),assert(conhecimento(X,Y,morcego)));true.
-adicionaCWumpus(X,Y)  :- (obstaculo(X,Y,wumpus),assert(conhecimento(X,Y,wumpus)));true.
-adicionaCAbismo(X,Y)  :- (obstaculo(X,Y,abismo),assert(conhecimento(X,Y,abismo)));true.
-adicionaCBrisa(X,Y)   :- (brisa(X,Y),assert(conhecimento(X,Y,brisa)));true.
-adicionaCFedor(X,Y)   :- (fedor(X,Y),assert(conhecimento(X,Y,fedor)));true.
-adicionaCBrilho(X,Y)  :- (brilho(X,Y),assert(conhecimento(X,Y,brilho)));true.
-adicionaCGrito(X,Y) :- (grito(X,Y),assert(conhecimento(X,Y,grito)));true.
+adicionaCMorcego(X,Y)      :- (obstaculo(X,Y,morcego),assert(conhecimento(X,Y,morcego)));true.
+adicionaCWumpus(X,Y)       :- (obstaculo(X,Y,wumpus),assert(conhecimento(X,Y,wumpus)));true.
+adicionaCAbismo(X,Y)       :- (obstaculo(X,Y,abismo),assert(conhecimento(X,Y,abismo)));true.
+adicionaCBrisa(X,Y)        :- (brisa(X,Y),assert(conhecimento(X,Y,brisa)));true.
+adicionaCFedor(X,Y)        :- (fedor(X,Y),assert(conhecimento(X,Y,fedor)));true.
+adicionaCBrilho(X,Y)       :- (brilho(X,Y),assert(conhecimento(X,Y,brilho)));true.
+adicionaCGrito(X,Y)        :- (grito(X,Y),assert(conhecimento(X,Y,grito)));true.
+adicionaCSemObstaculo(X,Y) :- not(obstaculo(X,Y,morcego);obstaculo(X,Y,wumpus);obstaculo(X,Y,abismo));true.
+adicionaCVisitado(X,Y)     :- (not(conhecimento(X,Y,visitado)),assert(conhecimento(X,Y,visitado)));true.
 adicionaConhecimentos(X,Y) :- adicionaCMorcego(X,Y),adicionaCWumpus(X,Y),
 			      adicionaCAbismo(X,Y),adicionaCBrisa(X,Y),
 			      adicionaCFedor(X,Y),adicionaCBrilho(X,Y),
-			      adicionaCGrito(X,Y).
+			      adicionaCGrito(X,Y), adicionaCSemObstaculo(X,Y),
+			      adicionaCVisitado(X,Y), atualizaAdjacentes(X,Y).
 
-atualizarConhecimento :- posicao(X,Y),removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
-atualizarConhecimento(X,Y) :- removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
+%FUNCOES INTERNAS DA atualizaBloco
+
+removeConhecimentoBlocoAdj(X,Y)	   :- ((conhecimento(X,Y,wumpus),temBlocoQueNaoTemConhecimento(X,Y,fedor),
+				       retract(conhecimento(X,Y,wumpus)));true),
+				      ((conhecimento(X,Y,morcego),temBlocoQueNaoTemConhecimento(X,Y,grito),
+				       retract(conhecimento(X,Y,morcego)));true),
+				      ((conhecimento(X,Y,abismo),temBlocoQueNaoTemConhecimento(X,Y,brisa),
+				       retract(conhecimento(X,Y,abismo)));true),
+
+				      ((conhecimento(X,Y,brisa),nenhumBlocoTemConhecimento(X,Y,abismo),
+				       retract(conhecimento(X,Y,brisa)));true),
+				      ((conhecimento(X,Y,fedor),nenhumBlocoTemConhecimento(X,Y,wumpus),
+				       retract(conhecimento(X,Y,fedor)));true),
+				      ((conhecimento(X,Y,grito),nenhumBlocoTemConhecimento(X,Y,morcego),
+				       retract(conhecimento(X,Y,grito)));true).
+
+adicionaConhecimentoBlocoAdj(X,Y)  :-	 (not(conhecimento(X,Y,visitado)),
+
+					 ((temConhecimentoAdj(X,Y,fedor),not(conhecimento(X,Y,wumpus)),
+				          assert(conhecimento(X,Y,wumpus)));true),
+			                 ((temConhecimentoAdj(X,Y,grito),not(conhecimento(X,Y,morcego)),
+				          assert(conhecimento(X,Y,morcego)));true),
+			                 ((temConhecimentoAdj(X,Y,brisa),not(conhecimento(X,Y,abismo)),
+				          assert(conhecimento(X,Y,abismo)));true),
+
+					 ((temConhecimentoAdj(X,Y,abismo),not(conhecimento(X,Y,brisa)),
+				          assert(conhecimento(X,Y,brisa)));true),
+					 ((temConhecimentoAdj(X,Y,wumpus),not(conhecimento(X,Y,fedor)),
+				          assert(conhecimento(X,Y,fedor)));true),
+					 ((temConhecimentoAdj(X,Y,morcego),not(conhecimento(X,Y,grito)),
+				          assert(conhecimento(X,Y,grito)));true));true.
+
+temConhecimentoVisitado([],_)             :- false.
+temConhecimentoVisitado([ELEM|T],CON)	  :- (getXY(ELEM,X,Y),conhecimento(X,Y,CON),conhecimento(X,Y,visitado));
+                                             temConhecimentoVisitado(T,CON).
+naoTemConhecimento([],_)                 :- false.
+naoTemConhecimento([ELEM|T],CON)        :- (conhecimento(X,Y,visitado),not((getXY(ELEM,X,Y),conhecimento(X,Y,CON))));
+				            naoTemConhecimento(T,CON).
+
+temConhecimentoAdj(X,Y,CON)         :- blocosAdjacentes(X,Y,ADJ),include(validaPosicao,ADJ,LADJ),
+				       temConhecimentoVisitado(LADJ,CON).
+
+temBlocoQueNaoTemConhecimento(X,Y,CON)    :- blocosAdjacentes(X,Y,ADJ),include(validaPosicao,ADJ,LADJ),
+					     naoTemConhecimento(LADJ,CON).
+
+nenhumConhecimento([],_).
+nenhumConhecimento([ELEM|T],CON)    :- not((getXY(ELEM,X,Y),conhecimento(X,Y,CON))),nenhumConhecimento(T,CON).
+nenhumBlocoTemConhecimento(X,Y,CON) :- blocosAdjacentes(X,Y,ADJ),include(validaPosicao,ADJ,LADJ),
+				       nenhumConhecimento(LADJ,CON).
+
+
+atualizaBloco(X,Y)          :- removeConhecimentoBlocoAdj(X,Y),adicionaConhecimentoBlocoAdj(X,Y).
+atualizaBlocos([]).
+atualizaBlocos([ELEM|T])    :- getXY(ELEM,X,Y),atualizaBloco(X,Y), atualizaBlocos(T).
+
+atualizaAdjacentes(X,Y)     :- blocosAdjacentes(X,Y,ADJ), include(validaPosicao,ADJ,LADJ), atualizaBlocos(LADJ).
+
+atualizarConhecimento       :- posicao(X,Y),removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
+atualizarConhecimento(X,Y)  :- removeConhecimento(X,Y),adicionaConhecimentos(X,Y).
 
 % TENTA MATAR UM OBSTACULO EM UMA POSICAO X,Y
 matarObstaculo(X,Y) :- obstaculo(X,Y,E),(E \= abismo),retract(obstaculo(X,Y,E)),atom_concat(matar,E,ME),adicionaAcao(ME).
@@ -189,16 +252,16 @@ adicionaAcao(NOME) :- posicao(X,Y), A = [X,Y,NOME], acao(AS),lstPushE(A,AS,NAS),
 
 % ATIRA UMA FLECHA NA POSICAO ATUAL
 atirar :- posicao(X,Y),qtdFlecha(Q),Q > 0,matarObstaculo(X,Y),decPontuacao(10),decFlecha,atualizarConhecimento,
-	adicionaAcao(atirar).
+	  adicionaAcao(atirar).
 
 % TENTA PEGAR O OURO DA POSICAO ATUAL DO AGENTE
 pegarOuro :- decPontuacao(1),posicao(X,Y),recompensa(X,Y,ouro),retract(recompensa(X,Y,ouro)),addPontuacao(1000),
-	      atualizarConhecimento,adicionaAcao(pegarOuro).
+	     atualizarConhecimento,adicionaAcao(pegarOuro).
 
 % ANDA NA DIRECAO EM QUE O AGENTE ESTA OLHANDO, SE FOR PAREDE O AGENTE
 % NAO ANDA.
 andar(X,Y) :- posicao(PX,PY),validaPosicao(X,Y),adjacente(X,Y,PX,PY),decPontuacao(1),setarPosicao(X,Y),pontuacaoCondicao,
-	atualizarConhecimento,adicionaAcao(andar),efeitoMorcego.
+	      atualizarConhecimento,adicionaAcao(andar),efeitoMorcego.
 
 
 
