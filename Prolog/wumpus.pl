@@ -114,6 +114,7 @@ removeConhecimento(X,Y)     :- (conhecimento(X,Y,CON),retract(conhecimento(X,Y,C
 removeTudo                  :- removeObstaculo;removeRecompensa;removePontuacao;removeDirecao;
 		               removePosicao;removeEstado;removeEstadoJogo;removeConhecimento;removeFlecha;removeAcoes;
 			       removeConhecimentoAtt.
+
 % Reinicia o mundo usando valores constantes
 reiniciarC	  :- removeTudo;init.
 % Reinicia o mundo usando valores randomicos
@@ -152,7 +153,7 @@ simulaAndar(X,Y)  :- posicao(AX,AY),direcao(DIR),((DIR==norte,X is AX,Y is AY - 
 						  (DIR==oeste,X is AX - 1, Y is AY)).
 
 % Adiciona conhecimento a base de dados
-adicionarConhecimento(X,Y,CON) :- not(conhecimento(X,Y,CON)),assert(conhecimento(X,Y,CON)).
+adicionarConhecimento(X,Y,CON) :- (not(conhecimento(X,Y,CON)),assert(conhecimento(X,Y,CON)));true.
 
 % Adicionar conhecimentos de uma certa posicao X,Y
 
@@ -180,7 +181,7 @@ adicionaNV(X,Y,QUERO,PRECISA)	     :- (blocosAdjacentesVisitados(X,Y,VISITADOS),
 adicionaConhecimentoVisitado(X,Y)    :- adicionaCMorcego(X,Y),adicionaCWumpus(X,Y),
 			                adicionaCAbismo(X,Y),adicionaCBrisa(X,Y),
 			                adicionaCFedor(X,Y),adicionaCBrilho(X,Y),
-				        adicionaCGrito(X,Y), adicionaCSemObstaculo(X,Y).
+				        adicionaCGrito(X,Y).
 
 adicionaConhecimentoNaoVisitado(X,Y) :-	adicionaNV(X,Y,wumpus,fedor),adicionaNV(X,Y,morcego,grito),
 					adicionaNV(X,Y,abismo,brisa).
