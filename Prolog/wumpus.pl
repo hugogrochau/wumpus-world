@@ -168,7 +168,7 @@ matarAgente	  :- removeEstado;assert(estado(morto)).
 % SE ELE TA NUM ABISMO, ELE MORRE E PERDE 1000 PONTOS)
 pontuacaoCondicao :- posicao(X,Y),(obstaculo(X,Y,OBS),
 		    ((OBS==abismo,decPontuacao(1000),matarAgente);
-		     (OBS==wumpus,decPontuacao(1000),matarAgente)));true.
+		     (OBS==wumpus,qtdFlecha(FLECHA),FLECHA < 1,decPontuacao(1000),matarAgente)));true.
 
 validaPosicao(X,Y) :- tamanhoMundo(T), X >= 1, X =< T, Y >= 1, Y =< T.
 validaPosicao([X|[Y|_]]) :- validaPosicao(X,Y).
@@ -320,52 +320,29 @@ maisBarato([BLOCO],_,_,BLOCO).
 maisBarato([A|T],DX,DY,BARATO)  :- maisBarato(T,DX,DY,B),custo(A,DX,DY,AC),
 	                           custo(B,DX,DY,BC),(((AC =< BC),BARATO = A) ; (BARATO = B)).
 
-/*
-gerarCaminho(OX,OY,DX,DY,CAM,RESULT) :- (adjacente(OX,OY,DX,DY),copyList(CAM,RESULT)) ;
-                                        (blocosAdjacentesVisitados(OX,OY,ADJ), filtrar(CAM,ADJ,ADJVALIDO),
-					 length(ADJVALIDO,LEN),LEN > 0,
-				         maisBarato(ADJVALIDO,DX,DY,BL),length(CAM,CAMLEN),IDX is CAMLEN - 1,
-					 nth0(IDX,R,BL,CAM),
-					 getXY(BL,X,Y),gerarCaminho(X,Y,DX,DY,R,RESULT)).
+caminhoValido([]).
+caminhoValido([_]).
+caminhoValido([H|T]) :- getXY(H,X,Y),getHead(T,H2),getXY(H2,BX,BY),adjacente(X,Y,BX,BY),caminhoValido(T).
 
 
-gerarCaminho(OX,OY,OX,OY,CAM,CAM).
-gerarCaminho(OX,OY,DX,DY,CAM,RESULT)     :- blocosAdjacentesVisitados(OX,OY,ADJ), filtrar(CAM,ADJ,ADJVALIDO).
+tentaCaminho(ADJ,DX,DY,CAM,CAMINHO)	:-  maisBarato(ADJ,DX,DY,BL),
+					    getXY(BL,X,Y),
+					    (
+						gerarCaminho(X,Y,DX,DY,CAM,NCAMINHO),caminhoValido(NCAMINHO) ;
+					       (delete(ADJ,BL,NADJ),tentaCaminho(NADJ,DX,DY,CAM,NCAMINHO))
+					     ),
+					     copyList(NCAMINHO,CAMINHO).
+gerarCaminho(OX,OY,OX,OY,_,[[OX,OY]]).
+gerarCaminho(OX,OY,DX,DY,CAM,CAMINHO)   :- ((adjacente(OX,OY,DX,DY),CAMINHO = [[OX,OY],[DX,DY]]) ;
+                                           (
+	                                     blocosAdjacentesVisitados(OX,OY,ADJ),filtrar(CAM,ADJ,ADJVALIDO),
+					     length(ADJVALIDO,LEN), LEN > 0, nth0(0,NCAM,[OX,OY],CAM),
+					     tentaCaminho(ADJVALIDO,DX,DY,NCAM,NCAMINHO),
+					     nth0(0,CAMINHO,[OX,OY],NCAMINHO)
+					   )).
 
 
-geraCaminhos([ELEM],DX,DY,CAM,CAMINHOS)  :- getXY(ELEM,X,Y),gerarCaminho(X,Y,DX,DY,CAM,R),copyList(R,CAMINHOS).
-geraCaminhos([H|T],DX,DY,CAM,CGERADOS)   :- geraCaminhos(T,DX,DY,CAM,CAMINHOS),
-					    getXY(H,X,Y),gerarCaminho(X,Y,DX,DY,CAM,RESULT),
-	                                    nth0(0,CGERADOS,RESULT,CAMINHOS).
-gerarCaminho(OX,OY,DX,DY,CAM,RESULT)     :- .
-*/
 
-melhorCustoCaminho([BLOCO], CUSTO)	   :- getXY(BLOCO,BX,BY),posicao(X,Y),custo([X,Y],BX,BY,CUSTO).
-melhorCustoCaminho([BLOCO|BLOCOS],CUSTO)   :- melhorCustoCaminho(BLOCOS,CBLS), getXY(BLOCO,BX,BY),
-	                                      posicao(X,Y),custo([X,Y],BX,BY,CBL),CUSTO is CBLS + CBL.
-
-pegaMelhorCaminho([ELEM],ELEM).
-pegaMelhorCaminho([H|T],RESULT) :- pegaMelhorCaminho(T,M),melhorCustoCaminho(H,CA),melhorCustoCaminho(M,CM),
-				   ((CA =< CM, RESULT = H) ; (RESULT = M)).
-
-gerarCaminhos([],DX,DY,CAM,[CAMINHOS])   :- length(CAM,LEN),nth0(LEN,CAMINHOS,[DX,DY],CAM).
-gerarCaminhos([ELEM],DX,DY,CAM,CAMINHOS) :- getXY(ELEM,OX,OY),length(CAM,LEN),nth0(LEN,NCAM,[OX,OY],CAM),
-	                                    gerarCaminho(OX,OY,DX,DY,NCAM,CAMINHO),
-					    copyList([CAMINHO],CAMINHOS).
-gerarCaminhos([H|T],DX,DY,CAM,CAMINHOS) :- gerarCaminhos(T,DX,DY,CAM,RCAMINHOS),getXY(H,OX,OY), length(CAM,LEN),
-					   nth0(LEN,NCAM,[OX,OY],CAM),
-					   gerarCaminho(OX,OY,DX,DY,NCAM,CAMINHO), nth0(0,CAMINHOS,CAMINHO,RCAMINHOS).
-
-gerarCaminho(OX,OY,DX,DY,CAM,CAMINHO)	 :- (blocosAdjacentesVisitados(OX,OY,ADJ),filtrar(CAM,ADJ,ADJVALIDO), (
-	                                    (length(ADJVALIDO,LEN),LEN == 0, length(CAM,LEN),
-					     nth0(LEN,CAMINHO,[DX,DY],CAM),
-					     CAMINHO = [[DX,DY]]);
-					    (adjacente(OX,OY,DX,DY),length(CAM,LEN),nth0(LEN,CAMINHO,[DX,DY],CAM));
-					    (length(CAM,LEN),((not(nth0(_,CAM,[OX,OY])),nth0(LEN,CAM2,[OX,OY],CAM));
-					     copyList(CAM,CAM2)),
-					     gerarCaminhos(ADJVALIDO,DX,DY,CAM2,CAMINHOS),
-	                                     pegaMelhorCaminho(CAMINHOS,MCAMINHO),
-					     copyList(MCAMINHO,CAMINHO)))).
 
 geraCaminho(OX,OY,DX,DY,CAMINHO) :- gerarCaminho(OX,OY,DX,DY,[],CAM),((nth0(_,CAM,[OX,OY]),delete(CAM,[OX,OY],CAMINHO));
 				    copyList(CAM,CAMINHO)).
@@ -394,24 +371,25 @@ filtrar(OPENLIST,[H|T],ATUALIZADO)    :- filtrar(OPENLIST,T,L), ((not(nth0(_,OPE
 								juntarListas(L,[H],ATUALIZADO));
 								(copyList(L,ATUALIZADO))).
 
-adicionaBlocosAbertos(OPENLIST,NLIST) :- posicao(X,Y),blocosAdjacentesNaoVisitados(X,Y,NAOVISITADOS),
-	                                 filtrar(OPENLIST,NAOVISITADOS,CANDIDATOS),
-					 juntarListas(OPENLIST,CANDIDATOS,NLIST).
+adicionaBlocosAbertos(OPENLIST,NLIST) :- ((posicao(X,Y),blocosAdjacentesNaoVisitados(X,Y,NAOVISITADOS),
+	                                   filtrar(OPENLIST,NAOVISITADOS,CANDIDATOS),
+					   juntarListas(OPENLIST,CANDIDATOS,NLIST));copyList(OPENLIST,NLIST)).
 
 andarPorCaminho([BLOCO])   :- getXY(BLOCO,X,Y),andar(X,Y).
 andarPorCaminho([BLOCO|T]) :- getXY(BLOCO,X,Y),andar(X,Y),andarPorCaminho(T).
 
 execAcaoAtual(OPENLIST,NLIST) :- posicao(X,Y), (
 				(obstaculo(X,Y,wumpus),atirar,copyList(OPENLIST,NLIST))  ;
-				(obstaculo(X,Y,morcego),(atirar;efeitoMorcego(OPENLIST,NLIST))) ;
+				(obstaculo(X,Y,morcego),( (atirar,copyList(OPENLIST,NLIST));
+				efeitoMorcego(OPENLIST,NLIST))) ;
 				(obstaculo(X,Y,abismo),format('abismo'),copyList(OPENLIST,NLIST));
 				(true,copyList(OPENLIST,NLIST))                                 ),
 			        ((recompensa(X,Y,ouro),pegarOuro) ; true).
 
-execBusca(OPENLIST) :- (not(recompensa(_,_,ouro)) ; (adicionaBlocosAbertos(OPENLIST,NLIST),
+execBusca(OPENLIST) :- ((not(recompensa(_,_,ouro))) ; ( adicionaBlocosAbertos(OPENLIST,NLIST),
 		       length(NLIST,LEN),LEN > 0, caminhoMaisBarato(NLIST,BLOCO), getXY(BLOCO,BX,BY),
 		       delete(NLIST, BLOCO, MNLIST),
 		       gerarCaminhoVisitado(BX,BY,CAMINHO),andarPorCaminho(CAMINHO), execAcaoAtual(MNLIST,MNLIST2),
-		       execBusca(MNLIST2))).
+		       execBusca(MNLIST2)) ).
 buscaOuro	    :- execBusca([]),gerarCaminhoVisitado(1,1,CAMINHO),andarPorCaminho(CAMINHO).
 
