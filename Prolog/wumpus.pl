@@ -222,15 +222,23 @@ matarObstaculo(X,Y) :- obstaculo(X,Y,E),(E \= abismo),retract(obstaculo(X,Y,E)),
 
 % Executa o efeito morcego. Caso tenha um morcego onde o jogador esta,
 % ele vai para uma posicao randomica valida
-efeitoMorcego :- (posicao(X,Y),obstaculo(X,Y,morcego),randomizarPosicao,atualizarConhecimentos,pontuacaoCondicao,
-		  adicionaAcao(efeitoMorcego),efeitoMorcego);true.
+efeitoMorcego(OPENLIST,NLIST) :- (posicao(X,Y),obstaculo(X,Y,morcego),
+			          randomizarPosicao,atualizarConhecimentos,pontuacaoCondicao,
+		                  adicionaAcao(efeitoMorcego),adicionaBlocosAbertos(OPENLIST,MNLIST),
+				  efeitoMorcego(MNLIST,NLIST));true.
 
 blocoVisitado(ELEM) :- getXY(ELEM,X,Y),conhecimento(X,Y,visitado).
 
 blocosAdjacentes(X,Y,NL) :- LX is X+1,OX is X-1,NY is Y-1,SY is Y+1,L = [[LX,Y],[OX,Y],[X,SY],[X,NY]],
 	                    include(validaPosicao,L,NL).
+
 blocosAdjacentesVisitados(X,Y,VISITADOS) :- blocosAdjacentes(X,Y,BLADJ),include(validaPosicao,BLADJ,LVALIDOS),
 				            include(blocoVisitado,LVALIDOS,VISITADOS).
+
+blocoNaoVisitado(ELEM) :- getXY(ELEM,X,Y),not(conhecimento(X,Y,visitado)).
+
+blocosAdjacentesNaoVisitados(X,Y,NAOVISITADOS) :- blocosAdjacentes(X,Y,BLADJ),include(validaPosicao,BLADJ,LVALIDOS),
+						  include(blocoNaoVisitado,LVALIDOS,NAOVISITADOS).
 
 naoAtualizado(ELEM) :- getXY(ELEM,X,Y),not(conhecimento(X,Y,atualizado)).
 
@@ -260,8 +268,7 @@ pegarOuro :- decPontuacao(1),posicao(X,Y),recompensa(X,Y,ouro),retract(recompens
 % ANDA NA DIRECAO EM QUE O AGENTE ESTA OLHANDO, SE FOR PAREDE O AGENTE
 % NAO ANDA.
 andar(X,Y) :- posicao(PX,PY),validaPosicao(X,Y),adjacente(X,Y,PX,PY),decPontuacao(1),setarPosicao(X,Y),
-	      adicionaCVisitado(X,Y),pontuacaoCondicao,atualizarConhecimentos,adicionaAcao(andar),
-	      efeitoMorcego.
+	      adicionaCVisitado(X,Y),pontuacaoCondicao,atualizarConhecimentos,adicionaAcao(andar).
 
 
 % Gera uma lista de blocos(caminho) ate um certo ponto X,Y. Todos os
@@ -274,31 +281,51 @@ copyList(L,R) :- accCp(L,R).
 accCp([],[]).
 accCp([H|T1],[H|T2]) :- accCp(T1,T2).
 
-custo(BLOCO,CUSTO) :- getXY(BLOCO,X,Y), (((conhecimento(X,Y,wumpus);conhecimento(X,Y,morcego)),CUSTO is 10) ; (
-					  (conhecimento(X,Y,abismo),CUSTO is 1000)) ; (CUSTO is 1)).
-maisBarato([BLOCO],BLOCO).
-maisBarato([A|T],BARATO)  :- maisBarato(T,B),custo(A,AC),custo(B,BC),(((AC =< BC),BARATO = A) ; (BARATO = B)).
+manhattan(BLOCO,DX,DY,MAN) :- getXY(BLOCO,BX,BY),CX is abs(BX - DX), CY is abs(BY - DY), MAN is CX + CY.
+custo(BLOCO,DX,DY,CUSTO)   :- getXY(BLOCO,X,Y),manhattan(BLOCO,DX,DY,MAN),
+			     (((conhecimento(X,Y,wumpus);conhecimento(X,Y,morcego)),CUSTO is 10 + MAN) ; (
+		              (conhecimento(X,Y,abismo),CUSTO is 1000 + MAN)) ; (CUSTO is 1 + MAN)).
+
+maisBarato([BLOCO],_,_,BLOCO).
+maisBarato([A|T],DX,DY,BARATO)  :- maisBarato(T,DX,DY,B),custo(A,DX,DY,AC),
+	                           custo(B,DX,DY,BC),(((AC =< BC),BARATO = A) ; (BARATO = B)).
+
 
 gerarCaminho(OX,OY,DX,DY,CAM,RESULT) :- (copyList(CAM,RESULT),adjacente(OX,OY,DX,DY)) ;
-                                 (blocosAdjacentesVisitados(OX,OY,ADJ),	length(ADJ,LEN),LEN > 0,
-				  maisBarato(ADJ,BL),lstPushB(BL,CAM,R),getXY(BL,X,Y),
-				  gerarCaminho(X,Y,DX,DY,R,RESULT)).
-
+                                        (blocosAdjacentesVisitados(OX,OY,ADJ), length(ADJ,LEN),LEN > 0,
+				         maisBarato(ADJ,DX,DY,BL),length(CAM,CAMLEN),IDX is CAMLEN - 1,
+					 nth0(IDX,R,BL,CAM),
+					 getXY(BL,X,Y),gerarCaminho(X,Y,DX,DY,R,RESULT)).
 
 gerarCaminhoVisitado(X,Y,RESULT) :- CAM = [[X,Y]],posicao(OX,OY),gerarCaminho(OX,OY,X,Y,CAM,RESULT).
 
-%Anda para uma posicao X,Y, passando apenas por blocos visitados
+custoCaminho(BLOCO, CUSTO)         :- getXY(BLOCO,X,Y),custo(BLOCO,X,Y,CUSTO).
+custoCaminho([BLOCO|BLOCOS],CUSTO) :- custoCaminho(BLOCOS,CBLS), getXY(BLOCO,X,Y),custo(BLOCO,X,Y,CBL), CUSTO is CBLS + CBL.
+
+caminhoMaisBarato([BLOCO],BLOCO).
+caminhoMaisBarato([A|T],BARATO) :- caminhoMaisBarato(T,B),custoCaminho(A,AC),custoCaminho(B,BC),
+	                          (((AC =< BC),BARATO = A) ; (BARATO = B)).
 
 
+juntarListas([],L2,L2).
+juntarListas([H|T],L2,[H|L3])	      :- juntarListas(T,L2,L3).
 
+adicionaBlocosAbertos(OPENLIST,NLIST) :- posicao(X,Y),blocosAdjacentesNaoVisitados(X,Y,NAOVISITADOS),
+					 juntarListas(OPENLIST,NAOVISITADOS,NLIST).
 
+andarPorCaminho([BLOCO])   :- getXY(BLOCO,X,Y),andar(X,Y).
+andarPorCaminho([BLOCO|T]) :- getXY(BLOCO,X,Y),andar(X,Y),andarPorCaminho(T).
 
+execAcaoAtual(OPENLIST,NLIST) :- posicao(X,Y), ( (obstaculo(X,Y,wumpus),atirar)  ;
+				(obstaculo(X,Y,morcego),(atirar;efeitoMorcego(OPENLIST,NLIST))) ;
+				 (obstaculo(X,Y,abismo),format('abismo'));
+				 (true)                        ) ,
+			       ((recompensa(X,Y,ouro),pegarOuro) ; true).
 
-
-
-
-
-
-
-
+execBusca(OPENLIST) :- (not(recompensa(_,_,ouro)) ; (adicionaBlocosAbertos(OPENLIST,NLIST),
+		       length(NLIST,LEN),LEN > 0, caminhoMaisBarato(NLIST,BLOCO), getXY(BLOCO,BX,BY),
+		       delete(NLIST, BLOCO, MNLIST),
+		       gerarCaminhoVisitado(BX,BY,CAMINHO),andarPorCaminho(CAMINHO), execAcaoAtual(MNLIST,MNLIST2),
+		       execBusca(MNLIST2))).
+buscaOuro	    :- execBusca([]),gerarCaminhoVisitado(1,1,CAMINHO),andarPorCaminho(CAMINHO).
 
