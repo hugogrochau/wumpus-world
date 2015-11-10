@@ -1,0 +1,195 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <SWI-cpp.h>
+#include <iostream>
+#include <windows.h>
+#include <stdlib.h>
+#include <conio.h>
+#include <string.h>
+#include "programpath.h"
+
+#define WORLD_LEN 6
+
+using namespace std;
+
+typedef struct point {
+	int x;
+	int y;
+} Point;
+
+typedef struct wumpusState {
+	int score;
+	Point *agentPosition;
+	Entity grid[WORLD_LEN][WORLD_LEN][2];
+} WumpusState;
+
+typedef enum entity {
+	OURO,
+	WUMPUS,
+	ABISMO,
+	MORCEGO,
+	VAZIO
+} Entity;
+
+
+static void fillInitialState();
+static void initializeWorld();
+static void restartWorld();
+static void removeAll();
+static void printWorld();
+static void printColor(char *, int);
+
+static void fillObstacles(WumpusState *state);
+static void fillRewards (WumpusState *state);
+static void updateAgentPosition(WumpusState *state);
+static int getScore();
+
+
+int main(void) {
+	char* argv[] = {"swipl.dll", "-s", PROGRAM_PATH};
+
+	PlEngine e(3, argv);
+	fillInitialState();
+	printWorld();
+
+	_getch();
+	return 1;
+}
+
+static void fillInitialState() {
+	initializeWorld();
+	WumpusState *state = new WumpusState();
+	state->agentPosition = new Point();
+	for (int i = 0; i < WORLD_LEN; i++) {
+		for (int j = 0; j < WORLD_LEN; j++) {
+			state->grid[i][j][0] = VAZIO;
+			state->grid[i][j][1] = VAZIO;
+		}
+	}
+
+	state->score = getScore();
+	fillObstacles(state);
+	fillRewards(state);
+	updateAgentPosition(state);
+	
+}
+
+static void initializeWorld() {
+	PlCall("gerarMundoRandomico", NULL);
+}
+
+static void restartWorld() {
+	PlCall("reiniciarR", NULL);
+}
+
+static void removeAll() {
+	PlCall("removeTudo", NULL);
+}
+
+
+static void printWorld(WumpusState *state) {
+	for (int y = 0; y < WORLD_LEN; y++) {
+		for (int x = 0; x < WORLD_LEN; x++) {
+			int posx = state->agentPosition->x;
+			int posy = state->agentPosition->y;
+			if (x == posx - 1 && y == posy - 1) {
+				printColor("AG ", FOREGROUND_RED | FOREGROUND_GREEN);
+				continue;
+			}
+			char * entityString = "   ";
+			int color = 0;
+			switch (state->grid[x][y][0]) {
+			case ABISMO:
+				entityString[0] = 'A';
+				color = FOREGROUND_GREEN;
+				break;
+			case WUMPUS:
+				entityString[0] = 'W';
+				color = FOREGROUND_RED;
+				break;
+			case MORCEGO:
+				entityString[0] = 'M';
+				color = FOREGROUND_BLUE;
+				break;
+			default: entityString[0] = 'X';
+			}
+			if (state->grid[x][y][1] == OURO) {
+				entityString[1] = 'O';
+				color = FOREGROUND_BLUE | FOREGROUND_RED;
+			}
+			printColor(entityString, color);
+		}
+		printf("\n");
+	}
+	printf("Score: %d", state->score);
+	printf("\n");
+}
+
+static void fillObstacles(WumpusState *state) {
+	PlTermv av(3);
+	PlQuery q("obstaculo", av);
+	int x, y;
+	char *obs;
+	Entity obstacle;
+	while (q.next_solution()) {
+		obs = av[2];
+		if (strcmp("abismo", obs) == 0) {
+			obstacle = ABISMO;
+		}
+		else if (strcmp("wumpus", obs) == 0) {
+			obstacle = WUMPUS;
+		}
+		else if (strcmp("morcego", obs) == 0) {
+			obstacle= MORCEGO;
+		}
+		x = (int)av[0] - 1;
+		y = (int)av[1] - 1;
+		state->grid[x][y][0] = obstacle;
+	}
+}
+
+static void fillRewards(WumpusState *state) {
+	PlTermv av(3);
+	PlQuery q("recompensa", av);
+	int x, y;
+	Entity reward = OURO;
+	while (q.next_solution()) {
+		x = (int) av[0] - 1;
+		y = (int) av[1] - 1;
+		state->grid[x][y][1] = reward;
+	}
+}
+
+static void updateAgentPosition(WumpusState *state) {
+	PlTermv av(2);
+	PlQuery q("posicao", av);
+	int x, y;
+	while (q.next_solution()) {
+		x = (int) av[0];
+		y = (int) av[1];
+	}
+	Point *p = new Point();
+	p->x = x;
+	p->y = y;
+	state->agentPosition = p;
+}
+
+static int getScore() {
+	int score = 0;
+	PlTermv av(1);
+	PlQuery q("pontuacao", av);
+	while (q.next_solution()) {
+		score = (int) av[0];
+	}
+	return score;
+}
+
+static void printColor(char *txt, int color) {
+	HANDLE console;
+	CONSOLE_SCREEN_BUFFER_INFO info;
+	console = GetStdHandle(STD_OUTPUT_HANDLE);
+	GetConsoleScreenBufferInfo(console, &info);
+	SetConsoleTextAttribute(console, color);
+	printf("%s", txt);
+	SetConsoleTextAttribute(console, info.wAttributes);
+}
+

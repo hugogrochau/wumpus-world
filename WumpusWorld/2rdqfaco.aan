@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <conio.h>
 #include <string.h>
-#include <list>
+#include <list>;
 #include "programpath.h"
 
 #define WORLD_LEN 6
@@ -54,9 +54,8 @@ static void printColor(char *, int);
 static void fillObstacles(WumpusState *state);
 static void fillRewards (WumpusState *state);
 static void updateAgentPosition(WumpusState *state);
-static void getActions(list<Action>);
+static void getActions(Action *actions);
 static ActionType getActionTypeFromString(char * actionString);
-static void updateStateWithAction(WumpusState *state, Action action);
 static int getScore();
 
 
@@ -67,17 +66,8 @@ int main(void) {
 
 	WumpusState *state = new WumpusState();
 	fillInitialState(state);
-	//printWorld(state);
+	printWorld(state);
 
-	list<Action> actions;
-	getActions(actions);
-
-	for (list<Action>::iterator list_iter = actions.begin(); list_iter != actions.end(); list_iter++) {
-		updateStateWithAction(state, *list_iter);
-	//	printWorld(state); 
-	}
-
-	while(_getch());
 	return 0;
 }
 
@@ -96,6 +86,7 @@ static void fillInitialState(WumpusState *state) {
 	fillObstacles(state);
 	fillRewards(state);
 	updateAgentPosition(state);
+	
 }
 
 static void initializeWorld() {
@@ -207,11 +198,8 @@ static ActionType getActionTypeFromString(char * actionString) {
 
 }
 
-static void updateStateWithAction(WumpusState *state, Action action) {
-	if (action.actionType == ANDAR) {
-		state->agentPosition.x = action.location.x;
-		state->agentPosition.y = action.location.y;
-	}
+static void updateStateWithAction(WumpusState *state, Action *action) {
+
 };
 
 static void printWorld(WumpusState *state) {
