@@ -78,19 +78,50 @@ init :-   assert(obstaculo(1,1,abismo)),
 
 % Gera obstaculos randomicamente // Ex : gerarObstaculos(3,abismo) ->
 % Gera 3 abismos
-gerarObstaculos(N,OBS) :-  (N > 0,tamanhoMundo(TAM),random_between(1,TAM,RX),random_between(1,TAM,RY), (
-			   (
-		              not(obstaculo(RX,RY,_)),not(recompensa(RX,RY,_)),not(posicaoInicial(RX,RY)),
-			      assert(obstaculo(RX,RY,OBS)),NN is N - 1,gerarObstaculos(NN,OBS)
-		           );gerarObstaculos(N,OBS));true).
+gerarObstaculos(N,OBS) :-
+	N > 0,
+	tamanhoMundo(TAM),random_between(1,TAM,RX),random_between(1,TAM,RY),
+	posicaoInicial(IX, IY),
+	(
+	    (
+		    not(obstaculo(RX,RY,_)),not(temObstaculoEmVolta(RX,RY)), % Não tem um obstaculo na mesma posição ou com 2 ou menos de distancia dela
+			not((OBS == abismo,recompensa(RX,RY,_))), % Se for um abismo, não tem recompensa nessa posicao
+			RX \= IX,RY \= IY,not(adjacente(IX,IY,RX,RY)), % Não esta na, ou em volta da posição inicial
+			assert(obstaculo(RX,RY,OBS)),
+			NN is N - 1,
+			gerarObstaculos(NN,OBS)
+		);
+		gerarObstaculos(N,OBS) % Se algumas das condições não forem realizadas, tente de novo.
+	);
+	true.
 
-% Gera recompensas randomicamente // Ex : gerarRecompensas(3,ouro) ->
-% Gera 3 ouros
-gerarRecompensas(N,REC) :-  (N > 0,tamanhoMundo(TAM),random_between(1,TAM,RX),random_between(1,TAM,RY), (
-			    (
-		               not(obstaculo(RX,RY,_)),not(recompensa(RX,RY,_)),not(posicaoInicial(RX,RY)),
-			       assert(recompensa(RX,RY,REC)),NN is N - 1,gerarRecompensas(NN,REC)
-			    );gerarRecompensas(N,REC));true).
+temObstaculoEmVolta(X,Y) :-
+	XO is X-1,
+	XL is X+1,
+	YN is Y-1,
+	YS is Y+1,
+	(
+	    obstaculo(XO,Y,_);
+	    obstaculo(XL,Y,_);
+	    obstaculo(X,YN,_);
+	    obstaculo(X,YS,_)
+	 ).
+
+% Gera recompensas randomicamente
+% Ex : gerarRecompensas(3,ouro) -> Gera 3 ouros
+gerarRecompensas(N,REC) :-
+	N > 0,tamanhoMundo(TAM),random_between(1,TAM,RX),random_between(1,TAM,RY),
+	(
+        (
+	        not(obstaculo(RX,RY,abismo)), % Não pode ter um abismo na mesma posição
+			not(recompensa(RX,RY,_)), % Não pode ter outra recompensa na mesma posição
+	        not(posicaoInicial(RX,RY)), % Não pode estar na posição inicial
+			assert(recompensa(RX,RY,REC)),
+			NN is N - 1,
+	        gerarRecompensas(NN,REC)
+	   );
+	gerarRecompensas(N,REC)
+	);true.
 
 % Gera um mundo randomico usando valores pre definidos
 % (QTDOURO,QTDMORCEGO,QTDABISMO,QTDWUMPUS)
