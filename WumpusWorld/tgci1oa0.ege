@@ -1,12 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
-
 #include <SWI-cpp.h>
 #include <iostream>
 #include <windows.h>
 #include <stdlib.h>
 #include <conio.h>
 #include <string.h>
-#include <list>
 #include "programpath.h"
 
 #define WORLD_LEN 6
@@ -54,9 +52,7 @@ static void printColor(char *, int);
 static void fillObstacles(WumpusState *state);
 static void fillRewards (WumpusState *state);
 static void updateAgentPosition(WumpusState *state);
-static void getActions(list<Action>);
-static ActionType getActionTypeFromString(char * actionString);
-static void updateStateWithAction(WumpusState *state, Action action);
+static void getActions(Action *actions);
 static int getScore();
 
 
@@ -67,17 +63,8 @@ int main(void) {
 
 	WumpusState *state = new WumpusState();
 	fillInitialState(state);
-	//printWorld(state);
+	printWorld(state);
 
-	list<Action> actions;
-	getActions(actions);
-
-	for (list<Action>::iterator list_iter = actions.begin(); list_iter != actions.end(); list_iter++) {
-		updateStateWithAction(state, *list_iter);
-	//	printWorld(state); 
-	}
-
-	while(_getch());
 	return 0;
 }
 
@@ -96,6 +83,7 @@ static void fillInitialState(WumpusState *state) {
 	fillObstacles(state);
 	fillRewards(state);
 	updateAgentPosition(state);
+	
 }
 
 static void initializeWorld() {
@@ -169,7 +157,7 @@ static int getScore() {
 	return score;
 }
 
-static void getActions(list<Action> actions) {
+static void getActions(Action *actions) {
 	PlTermv av(2);
 	PlQuery q("acao", av);
 	PlTerm actionsTerm;
@@ -181,38 +169,8 @@ static void getActions(list<Action> actions) {
 	
 	while (actionsArray.next(actionTerm)) { /* for each action */
 		PlTail actionArray(actionTerm);
-		PlTerm actionPart;
-		Action action;
-		Point p;
-		for (int i = 0; actionArray.next(actionPart); i++) {
-			switch (i) {
-			case 1:
-				p.x = (int) actionPart;
-				break;
-			case 2:
-				p.y = (int)actionPart;
-				break;
-			case 3:
-				action.actionType = getActionTypeFromString((char *) actionPart);
-			}
-		}
-		action.location = p;
-		actions.push_back(action);
 	}
 }
-
-/* TODO */
-static ActionType getActionTypeFromString(char * actionString) {
-	return ANDAR;
-
-}
-
-static void updateStateWithAction(WumpusState *state, Action action) {
-	if (action.actionType == ANDAR) {
-		state->agentPosition.x = action.location.x;
-		state->agentPosition.y = action.location.y;
-	}
-};
 
 static void printWorld(WumpusState *state) {
 	for (int y = 0; y < WORLD_LEN; y++) {
