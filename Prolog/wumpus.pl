@@ -1,9 +1,11 @@
 /********************************
  * MUNDO WUMPUS
- * GUSTAVO MARTINS E HUGO GROCHAU
+ * GUSTAVO MARTINS, HUGO GROCHAU
+ * DANIEL CARDOSO
+ *
  * DATA : 03/11/2015
  * INTELIGENCIA ARTIFICIAL
- * VERSION 1.3a
+ * VERSION 1.4a
  * ******************************/
 
 /********************
@@ -261,6 +263,31 @@ andar(X,Y) :- posicao(PX,PY),validaPosicao(X,Y),adjacente(X,Y,PX,PY),decPontuaca
 	      adicionaCVisitado(X,Y),pontuacaoCondicao,atualizarConhecimentos,adicionaAcao(andar),
 	      efeitoMorcego.
 
+
+% Gera uma lista de blocos(caminho) ate um certo ponto X,Y. Todos os
+% blocos da lista são blocos que foram visitados. O ultimo bloco é o
+% destino
+% CAM     : caminho
+%
+
+copyList(L,R) :- accCp(L,R).
+accCp([],[]).
+accCp([H|T1],[H|T2]) :- accCp(T1,T2).
+
+custo(BLOCO,CUSTO) :- getXY(BLOCO,X,Y), (((conhecimento(X,Y,wumpus);conhecimento(X,Y,morcego)),CUSTO is 10) ; (
+					  (conhecimento(X,Y,abismo),CUSTO is 1000)) ; (CUSTO is 1)).
+maisBarato([BLOCO],BLOCO).
+maisBarato([A|T],BARATO)  :- maisBarato(T,B),custo(A,AC),custo(B,BC),(((AC =< BC),BARATO = A) ; (BARATO = B)).
+
+gerarCaminho(OX,OY,DX,DY,CAM,RESULT) :- (copyList(CAM,RESULT),adjacente(OX,OY,DX,DY)) ;
+                                 (blocosAdjacentesVisitados(OX,OY,ADJ),	length(ADJ,LEN),LEN > 0,
+				  maisBarato(ADJ,BL),lstPushB(BL,CAM,R),getXY(BL,X,Y),
+				  gerarCaminho(X,Y,DX,DY,R,RESULT)).
+
+
+gerarCaminhoVisitado(X,Y,RESULT) :- CAM = [[X,Y]],posicao(OX,OY),gerarCaminho(OX,OY,X,Y,CAM,RESULT).
+
+%Anda para uma posicao X,Y, passando apenas por blocos visitados
 
 
 
