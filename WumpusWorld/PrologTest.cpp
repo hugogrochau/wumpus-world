@@ -71,7 +71,9 @@ int main(void) {
 
 	WumpusState *state = new WumpusState();
 	fillInitialState(state);
+	printf("Initial state:\n");
 	printWorld(state);
+	putchar('\n');
 
 	executeSearch();
 
@@ -79,9 +81,11 @@ int main(void) {
 	getActions(actions);
 
 	for (vector<Action>::iterator list_iter = actions.begin(); list_iter != actions.end(); list_iter++) {
+		printf("Press any key to execute next action\n");
 		_getch();
 		updateStateWithAction(state, *list_iter);
-		printWorld(state); 
+		printWorld(state);
+		putchar('\n');
 	}
 
 	return 0;

@@ -42,15 +42,22 @@ qtdAbismo(4).        %Quantidade de abismos no jogo
 qtdOuro(3).	     %Quantidade de ouro no jogo
 qtdMorcego(2).       %Quantidade de morcegos no jogo
 posicaoInicial(1,1). %Posicao inicial do jogador (Posicao Inicial = Saida do labirinto)
-
+distanciaMinima(1).
 
 /********************
  * REGRAS ESTATICAS
  ********************/
-adjacente(X,Y,A,B) :- (A is X+1,B is Y);
-                      (A is X-1,B is Y);
-		      (A is X,B is Y+1);
-		      (A is X,B is Y-1).
+adjacente(X,Y,A,B) :-
+	(A is X+1,B is Y);
+	(A is X-1,B is Y);
+    (A is X,B is Y+1);
+	(A is X,B is Y-1).
+
+adjacenteDiagonal(X,Y,A,B) :-
+	(A is X+1,B is Y+1);
+	(A is X-1,B is Y-1);
+    (A is X+1,B is Y-1);
+	(A is X-1,B is Y+1).
 
 /* Sensores */
 parede(X,Y) :- tamanhoMundo(TAM),(X > TAM;X < 1;Y < 1;Y > TAM).
@@ -84,9 +91,9 @@ gerarObstaculos(N,OBS) :-
 	posicaoInicial(IX, IY),
 	(
 	    (
-		    not(obstaculo(RX,RY,_)),not(temObstaculoEmVolta(RX,RY)), % Não tem um obstaculo na mesma posição ou com 2 ou menos de distancia dela
+		    not(obstaculo(RX,RY,_)),distanciaMinima(DM),not(temObstaculoEmVoltas(RX,RY,DM)), % Não tem um obstaculo na mesma posição ou com 2 ou menos de distancia dela
 			not((OBS == abismo,recompensa(RX,RY,_))), % Se for um abismo, não tem recompensa nessa posicao
-			RX \= IX,RY \= IY,not(adjacente(IX,IY,RX,RY)), % Não esta na, ou em volta da posição inicial
+			RX \= IX,RY \= IY,not(emVolta(IX,IY,RX,RY)), % Não esta na, ou em volta da posição inicial
 			assert(obstaculo(RX,RY,OBS)),
 			NN is N - 1,
 			gerarObstaculos(NN,OBS)
@@ -95,17 +102,22 @@ gerarObstaculos(N,OBS) :-
 	);
 	true.
 
-temObstaculoEmVolta(X,Y) :-
-	XO is X-1,
-	XL is X+1,
-	YN is Y-1,
-	YS is Y+1,
+emVolta(X,Y,X2,Y2) :-
+	adjacente(X,Y,X2,Y2);
+	adjacenteDiagonal(X,Y,X2,Y2).
+
+temObstaculoEmVoltas(_,_,0) :- false.
+
+temObstaculoEmVoltas(X,Y,N) :-
+	temObstaculoEmVolta(X,Y,N);
 	(
-	    obstaculo(XO,Y,_);
-	    obstaculo(XL,Y,_);
-	    obstaculo(X,YN,_);
-	    obstaculo(X,YS,_)
-	 ).
+		NN is N-1,
+		temObstaculoEmVolta(X,Y,NN)
+	).
+
+temObstaculoEmVolta(X,Y,N) :-
+	obstaculo(DX,DY,_),
+	manhattan([X,Y],DX,DY,N).
 
 % Gera recompensas randomicamente
 % Ex : gerarRecompensas(3,ouro) -> Gera 3 ouros
