@@ -7,9 +7,10 @@
 #include <conio.h>
 #include <string.h>
 #include <vector>
-#include "programpath.h"
 
 #define WORLD_LEN 6
+
+#define PROGRAM_PATH "[PATH_TO_PROJECT]\\WumposWorld\\Prolog\\wumpus.pl"
 
 using namespace std;
 
