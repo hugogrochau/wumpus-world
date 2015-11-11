@@ -1,3 +1,13 @@
+/************************************
+* GUSTAVO MARTINS, HUGO GROCHAU
+* E DANIEL CARDOSO
+* 
+* DATA : 10/11/2015
+* BUSCA POR SOLUCAO NO MUNDO WUMPUS
+************************************/
+
+
+
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <SWI-cpp.h>
