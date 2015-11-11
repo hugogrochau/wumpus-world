@@ -379,10 +379,10 @@ andarPorCaminho([BLOCO])   :- getXY(BLOCO,X,Y),andar(X,Y).
 andarPorCaminho([BLOCO|T]) :- getXY(BLOCO,X,Y),andar(X,Y),andarPorCaminho(T).
 
 execAcaoAtual(OPENLIST,NLIST) :- posicao(X,Y), (
-				(obstaculo(X,Y,wumpus),atirar,copyList(OPENLIST,NLIST))  ;
-				(obstaculo(X,Y,morcego),( (atirar,copyList(OPENLIST,NLIST));
+				(obstaculo(X,Y,wumpus),format('wumpus\n'),atirar,copyList(OPENLIST,NLIST))  ;
+				(obstaculo(X,Y,morcego),format('morcego\n'),((atirar,copyList(OPENLIST,NLIST));
 				efeitoMorcego(OPENLIST,NLIST))) ;
-				(obstaculo(X,Y,abismo),format('abismo'),copyList(OPENLIST,NLIST));
+				(obstaculo(X,Y,abismo),format('abismo\n'),copyList(OPENLIST,NLIST));
 				(true,copyList(OPENLIST,NLIST))                                 ),
 			        ((recompensa(X,Y,ouro),pegarOuro) ; true).
 
