@@ -245,13 +245,13 @@ static void updateStateWithAction(WumpusState *state, Action action) {
 		state->score -= 10;
 		break;
 	case MATAR_WUMPUS:
-		state->grid[action.location.x][action.location.y][0] = VAZIO;
+		state->grid[action.location.x - 1][action.location.y - 1][0] = VAZIO;
 		break;
 	case MATAR_MORCEGO:
-		state->grid[action.location.x][action.location.y][0] = VAZIO;
+		state->grid[action.location.x - 1][action.location.y - 1][0] = VAZIO;
 		break;
 	case PEGAR_OURO:
-		state->grid[action.location.x][action.location.y][1] = VAZIO;
+		state->grid[action.location.x - 1][action.location.y - 1][1] = VAZIO;
 		state->score += 1000;
 		break;
 	}
