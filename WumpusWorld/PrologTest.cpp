@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <conio.h>
 #include <string.h>
-#include <list>
+#include <vector>
 #include "programpath.h"
 
 #define WORLD_LEN 6
@@ -36,6 +36,9 @@ typedef struct wumpusState {
 enum ActionType {
 	ANDAR,
 	ATIRAR,
+	MATAR_WUMPUS,
+	MATAR_MORCEGO,
+	EFEITO_MORCEGO,
 	PEGAR_OURO
 };
 
@@ -46,6 +49,7 @@ typedef struct action {
 
 
 static void fillInitialState(WumpusState *state);
+static void executeSearch();
 static void initializeWorld();
 static void restartWorld();
 static void removeAll();
@@ -54,7 +58,7 @@ static void printColor(char *, int);
 static void fillObstacles(WumpusState *state);
 static void fillRewards (WumpusState *state);
 static void updateAgentPosition(WumpusState *state);
-static void getActions(list<Action>);
+static void getActions(vector<Action> &);
 static ActionType getActionTypeFromString(char * actionString);
 static void updateStateWithAction(WumpusState *state, Action action);
 static int getScore();
@@ -67,17 +71,19 @@ int main(void) {
 
 	WumpusState *state = new WumpusState();
 	fillInitialState(state);
-	//printWorld(state);
+	printWorld(state);
 
-	list<Action> actions;
+	executeSearch();
+
+	vector<Action> actions;
 	getActions(actions);
 
-	for (list<Action>::iterator list_iter = actions.begin(); list_iter != actions.end(); list_iter++) {
+	for (vector<Action>::iterator list_iter = actions.begin(); list_iter != actions.end(); list_iter++) {
+		_getch();
 		updateStateWithAction(state, *list_iter);
-	//	printWorld(state); 
+		printWorld(state); 
 	}
 
-	while(_getch());
 	return 0;
 }
 
@@ -98,6 +104,9 @@ static void fillInitialState(WumpusState *state) {
 	updateAgentPosition(state);
 }
 
+static void executeSearch() {
+	PlCall("buscaOuro", NULL);
+}
 static void initializeWorld() {
 	PlCall("gerarMundoRandomico", NULL);
 }
@@ -169,14 +178,14 @@ static int getScore() {
 	return score;
 }
 
-static void getActions(list<Action> actions) {
-	PlTermv av(2);
+static void getActions(vector<Action> &actions) {
+	PlTermv av(1);
 	PlQuery q("acao", av);
-	PlTerm actionsTerm;
-	while (q.next_solution()) {
-		actionsTerm = av[1];
-	}
+
+	PlTerm actionsTerm(av[0]);
+	q.next_solution();
 	PlTail actionsArray(actionsTerm);
+
 	PlTerm actionTerm;
 	
 	while (actionsArray.next(actionTerm)) { /* for each action */
@@ -186,14 +195,15 @@ static void getActions(list<Action> actions) {
 		Point p;
 		for (int i = 0; actionArray.next(actionPart); i++) {
 			switch (i) {
-			case 1:
+			case 0:
 				p.x = (int) actionPart;
 				break;
-			case 2:
-				p.y = (int)actionPart;
+			case 1:
+				p.y = (int) actionPart;
 				break;
-			case 3:
+			case 2:
 				action.actionType = getActionTypeFromString((char *) actionPart);
+				break;
 			}
 		}
 		action.location = p;
@@ -203,14 +213,47 @@ static void getActions(list<Action> actions) {
 
 /* TODO */
 static ActionType getActionTypeFromString(char * actionString) {
-	return ANDAR;
-
+	if (strcmp(actionString, "andar") == 0) {
+		return ANDAR;
+	}
+	if (strcmp(actionString, "atirar") == 0) {
+		return ATIRAR;
+	}
+	if (strcmp(actionString, "matarwumpus") == 0) {
+		return MATAR_WUMPUS;
+	}
+	if (strcmp(actionString, "matarmorcego") == 0) {
+		return MATAR_MORCEGO;
+	}
+	if (strcmp(actionString, "efeitoMorcego") == 0) {
+		return EFEITO_MORCEGO;
+	}
+	if (strcmp(actionString, "pegarOuro") == 0) {
+		return PEGAR_OURO;
+	}
 }
 
 static void updateStateWithAction(WumpusState *state, Action action) {
-	if (action.actionType == ANDAR) {
+	switch (action.actionType) {
+	case ANDAR:
+		state->score -= 1;
+	case EFEITO_MORCEGO:
 		state->agentPosition.x = action.location.x;
 		state->agentPosition.y = action.location.y;
+		break;
+	case ATIRAR:
+		state->score -= 10;
+		break;
+	case MATAR_WUMPUS:
+		state->grid[action.location.x][action.location.y][0] = VAZIO;
+		break;
+	case MATAR_MORCEGO:
+		state->grid[action.location.x][action.location.y][0] = VAZIO;
+		break;
+	case PEGAR_OURO:
+		state->grid[action.location.x][action.location.y][1] = VAZIO;
+		state->score += 1000;
+		break;
 	}
 };
 
@@ -220,10 +263,10 @@ static void printWorld(WumpusState *state) {
 			int posx = state->agentPosition.x;
 			int posy = state->agentPosition.y;
 			if (x == posx - 1 && y == posy - 1) {
-				printColor("AG ", FOREGROUND_RED | FOREGROUND_GREEN);
+				printColor("AG ", FOREGROUND_BLUE | FOREGROUND_RED);
 				continue;
 			}
-			char * entityString = "   ";
+			char entityString[] = "XX ";
 			int color = 0;
 			switch (state->grid[x][y][0]) {
 			case ABISMO:
@@ -240,10 +283,11 @@ static void printWorld(WumpusState *state) {
 				break;
 			default:
 				entityString[0] = 'X';
+				color = FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN;
 			}
 			if (state->grid[x][y][1] == OURO) {
 				entityString[1] = 'O';
-				color = FOREGROUND_BLUE | FOREGROUND_RED;
+				color = FOREGROUND_RED | FOREGROUND_GREEN;
 			}
 			printColor(entityString, color);
 		}
